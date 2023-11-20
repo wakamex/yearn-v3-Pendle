@@ -3,6 +3,7 @@ pragma solidity ^0.8.18;
 
 import "forge-std/console.sol";
 import {Setup} from "./utils/Setup.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract OperationTest is Setup {
     function setUp() public override {
@@ -19,17 +20,16 @@ contract OperationTest is Setup {
         // TODO: add additional check on strat params
     }
 
-    function test_operation(uint256 _amount) public {
+    function test_operation_NoFees(uint256 _amount) public {
+        setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
-
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
-        // TODO: Implement logic so totalDebt is _amount and totalIdle = 0.
-        checkStrategyTotals(strategy, _amount, 0, _amount);
+        checkStrategyTotals(strategy, _amount, _amount, 0);
 
         // Earn Interest
-        skip(1 days);
+        skip(10 days);
 
         // Report profit
         vm.prank(keeper);
@@ -47,6 +47,9 @@ contract OperationTest is Setup {
         vm.prank(user);
         strategy.redeem(_amount, user, user);
 
+        // TODO: Adjust if there are fees
+        checkStrategyTotals(strategy, 0, 0, 0);
+
         assertGe(
             asset.balanceOf(user),
             balanceBefore + _amount,
@@ -54,7 +57,7 @@ contract OperationTest is Setup {
         );
     }
 
-    function test_profitableReport(
+    function test_profitableReport_expectedFees(
         uint256 _amount,
         uint16 _profitFactor
     ) public {
@@ -64,13 +67,11 @@ contract OperationTest is Setup {
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
-        // TODO: Implement logic so totalDebt is _amount and totalIdle = 0.
-        checkStrategyTotals(strategy, _amount, 0, _amount);
+        checkStrategyTotals(strategy, _amount, _amount, 0);
 
         // Earn Interest
         skip(1 days);
 
-        // TODO: implement logic to simulate earning interest.
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         airdrop(asset, address(strategy), toAirdrop);
 
@@ -87,31 +88,39 @@ contract OperationTest is Setup {
         uint256 balanceBefore = asset.balanceOf(user);
 
         // Withdraw all funds
+        console.log("BEFORE USER REDEEM", strategy.totalAssets());
         vm.prank(user);
         strategy.redeem(_amount, user, user);
+        console.log("AFTER USER REDEEM", strategy.totalAssets());
 
-        assertGe(
-            asset.balanceOf(user),
-            balanceBefore + _amount,
-            "!final balance"
-        );
+        uint256 expectedFees = (profit * strategy.performanceFee()) / MAX_BPS;
+
+        assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
+
+        uint256 strategistShares = strategy.balanceOf(performanceFeeRecipient);
+        // empty complete strategy
+        console.log("BEFORE STRATEGIST REDEEM", strategy.totalAssets());
+        vm.prank(performanceFeeRecipient);
+        strategy.redeem(strategistShares, performanceFeeRecipient, performanceFeeRecipient);
+        console.log("AFTER STRATEGIST REDEEM", strategy.totalAssets());
+        assertGt(asset.balanceOf(performanceFeeRecipient), 0, "expectedFees not big enough!");
     }
 
-    function test_profitableReport_withFees(
+    function test_profitableReport_expectedShares(
         uint256 _amount,
         uint16 _profitFactor
     ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS));
 
-        // Set protocol fee to 0 and perf fee to 10%
+        // Set protofol fee to 0 and perf fee to 10%
         setFees(0, 1_000);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
         // TODO: Implement logic so totalDebt is _amount and totalIdle = 0.
-        checkStrategyTotals(strategy, _amount, 0, _amount);
+        checkStrategyTotals(strategy, _amount, _amount, 0);
 
         // Earn Interest
         skip(1 days);
@@ -141,62 +150,90 @@ contract OperationTest is Setup {
         vm.prank(user);
         strategy.redeem(_amount, user, user);
 
-        assertGe(
-            asset.balanceOf(user),
-            balanceBefore + _amount,
-            "!final balance"
-        );
+        // TODO: Adjust if there are fees
+        assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
 
         vm.prank(performanceFeeRecipient);
-        strategy.redeem(
-            expectedShares,
-            performanceFeeRecipient,
-            performanceFeeRecipient
-        );
+        strategy.redeem(expectedShares, performanceFeeRecipient, performanceFeeRecipient);
 
         checkStrategyTotals(strategy, 0, 0, 0);
 
-        assertGe(
-            asset.balanceOf(performanceFeeRecipient),
-            expectedShares,
-            "!perf fee out"
-        );
+        assertGe(asset.balanceOf(performanceFeeRecipient), expectedShares, "!perf fee out");
     }
 
-    function test_tendTrigger(uint256 _amount) public {
+    function test_emergencyWithdrawAll(uint256 _amount) public {
+        setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
-
-        (bool trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
-        (trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
-
         // Skip some time
-        skip(1 days);
-
-        (trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
+        skip(15 days);
 
         vm.prank(keeper);
-        strategy.report();
+        (uint profit, uint loss) = strategy.report();
+        assertGt(profit, 0, "!profit");
+        assertEq(loss, 0, "!loss");
 
-        (trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
+        vm.prank(management);
+        strategy.shutdownStrategy();
+        vm.prank(management); 
+        strategy.emergencyWithdraw(type(uint256).max);
+        assertGe(asset.balanceOf(address(strategy)), _amount, "!all in asset");
+
+        vm.prank(keeper);
+        (profit, loss) = strategy.report();
+        assertEq(profit, 0, "!profit");
+        assertEq(loss, 0, "!loss");
 
         // Unlock Profits
         skip(strategy.profitMaxUnlockTime());
 
-        (trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
+        vm.prank(user);
+        strategy.redeem(_amount, user, user);
+        // verify users earned profit
+        assertGt(asset.balanceOf(user), _amount, "!final balance");
+
+        checkStrategyTotals(strategy, 0, 0, 0);
+    }
+
+
+    function test_emergencyWithdraw(uint256 _amount, uint256 _emergencyWithdrawAmount) public {
+        setPerformanceFeeToZero(address(strategy));
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        vm.assume(_emergencyWithdrawAmount > minFuzzAmount && _emergencyWithdrawAmount < maxFuzzAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Skip some time
+        skip(15 days);
+
+        vm.prank(keeper);
+        (uint profit, uint loss) = strategy.report();
+        assertGt(profit, 0, "!profit");
+        assertEq(loss, 0, "!loss");
+
+        vm.prank(management);
+        strategy.shutdownStrategy();
+        vm.prank(management);
+        strategy.emergencyWithdraw(_amount);
+        assertGe(asset.balanceOf(address(strategy)), Math.min(_amount, _emergencyWithdrawAmount), "!all in asset");
+
+        vm.prank(keeper);
+        (profit, loss) = strategy.report();
+        assertEq(profit, 0, "!profit");
+        assertEq(loss, 0, "!loss");
+
+        // Unlock Profits
+        skip(strategy.profitMaxUnlockTime());
 
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-
-        (trigger, ) = strategy.tendTrigger();
-        assertTrue(!trigger);
+        // verify users earned profit
+        assertGt(asset.balanceOf(user), _amount, "!final balance");
     }
+
+    
 }
