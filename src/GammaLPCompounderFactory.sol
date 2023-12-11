@@ -11,6 +11,8 @@ contract GammaLPCompounderFactory {
     address public performanceFeeRecipient;
     address public keeper;
 
+    mapping(address => address) public assetToStrategy;
+
     constructor(
         address _management,
         address _peformanceFeeRecipient,
@@ -50,7 +52,67 @@ contract GammaLPCompounderFactory {
         newStrategy.setPendingManagement(management);
 
         emit NewGammaLPCompounder(address(newStrategy), _asset);
+
+        assetToStrategy[_asset] = address(newStrategy);
+
         return address(newStrategy);
+    }
+
+    /**
+     * @notice Deploy a new Gamma Stable LP Compounder Strategy.
+     * @dev This will set the msg.sender to all of the permissioned roles.
+     * @param _asset The underlying asset for the lender to use.
+     * @param _name The name for the lender to use.
+     * @return . The address of the new lender.
+     */
+    function newGammaLPCompounder(
+        address _asset,
+        uint256 _PID,
+        address _NATIVE,
+        address[][2] calldata _midRouteNativeToToken0Token1,
+        address[] calldata _rewards,
+        address[][] calldata _midRouteRewardToNative,
+        string memory _name
+    ) external returns (address) {
+
+        IStrategyInterface newStrategy = IStrategyInterface(address(new GammaLPCompounder(_asset, _PID, _NATIVE, _name)));
+        
+        newStrategy.setMidRouteNativeToToken0(_midRouteNativeToToken0Token1[0]);
+        newStrategy.setMidRouteNativeToToken1(_midRouteNativeToToken0Token1[1]);
+
+        uint256 rewardsLength = _rewards.length;
+        if (rewardsLength > 0) {
+            for (uint256 i; i < rewardsLength; ++i) {
+                newStrategy.addReward(_rewards[i]);                
+                newStrategy.setMidRouteRewardToNative(_rewards[i], _midRouteRewardToNative[i]);
+            }
+        }
+
+        newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
+
+        newStrategy.setKeeper(keeper);
+
+        newStrategy.setPendingManagement(management);
+
+        emit NewGammaLPCompounder(address(newStrategy), _asset);
+
+        assetToStrategy[_asset] = address(newStrategy);
+
+        return address(newStrategy);
+    }
+
+
+    /**
+     * @notice Retrieve the address of a strategy by LP address
+     * @param _asset LP address
+     * @return . strategy address
+     */
+    function getStrategyByAsset(address _asset) external view returns (address) {
+        return assetToStrategy[_asset];
+    }
+
+    function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
+        assetToStrategy[_asset] = _strategy;
     }
 
     /**

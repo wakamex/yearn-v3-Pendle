@@ -131,6 +131,8 @@ contract Setup is ExtendedTest, IEvents {
     function setUpStrategy() public {
         vm.prank(management);
         strategy.acceptManagement();
+        vm.prank(management);
+        strategy.setProfitLimitRatio(1_000_000);
     }
 
     function depositIntoStrategy(

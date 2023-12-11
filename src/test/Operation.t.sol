@@ -6,7 +6,7 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract OperationTest is Setup {
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
     }
 

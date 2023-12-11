@@ -78,9 +78,7 @@ contract GammaLPCompounder is BaseHealthCheck {
             }
 
             rewardBalance = _balanceQUICK(); //QUICK --> NATIVE
-            if (rewardBalance > 0) {
-                _swapRewardToNative(QUICK, rewardBalance);
-            }
+            _swapRewardToNative(QUICK, rewardBalance);
 
             uint256 rewardsLength = rewards.length; //REWARDS --> NATIVE
             if (rewardsLength > 0) {
@@ -88,9 +86,7 @@ contract GammaLPCompounder is BaseHealthCheck {
                 for (uint256 i; i < rewardsLength; ++i) {
                     currentReward = rewards[i];
                     rewardBalance = ERC20(currentReward).balanceOf(address(this));
-                    if (rewardBalance > 0) {
-                        _swapRewardToNative(currentReward, rewardBalance);
-                    }
+                    _swapRewardToNative(currentReward, rewardBalance);
                 }
             }
 
@@ -227,6 +223,7 @@ contract GammaLPCompounder is BaseHealthCheck {
     }
 
     function removeRewardByIndex(uint256 _rewardIndex) external onlyManagement {
+        ERC20(rewards[_rewardIndex]).safeApprove(router, 0);
         rewards[_rewardIndex] = rewards[rewards.length - 1];
         rewards.pop();
     }
@@ -279,14 +276,30 @@ contract GammaLPCompounder is BaseHealthCheck {
         _freeFunds(Math.min(stakedBalance, _amount));
     }
 
-    /// @notice Change router address (onlyGovernance), important: remove by index and re-add all rewards to approve the new router.
+    /// @notice Change router address (onlyGovernance).
     /// @param _newRouter The new router address
     function setRouter(address _newRouter) external onlyGovernance {
         require(_newRouter != address(0));
+        address _router = router; //save gas
+        //remove allowances
+        ERC20(QUICK).safeApprove(_router, 0);
+        ERC20(NATIVE).safeApprove(_router, 0);
+        //new approval
         ERC20(QUICK).safeApprove(_newRouter, 0);
         ERC20(QUICK).safeApprove(_newRouter, type(uint).max);
         ERC20(NATIVE).safeApprove(_newRouter, 0);
         ERC20(NATIVE).safeApprove(_newRouter, type(uint).max);
+        //rewards: remove allowances & approve new
+        uint256 rewardsLength = rewards.length;
+        if (rewardsLength > 0) {
+            address currentReward;
+            for (uint256 i; i < rewardsLength; ++i) {
+                currentReward = rewards[i];
+                ERC20(currentReward).safeApprove(_router, 0);
+                ERC20(currentReward).safeApprove(_newRouter, 0);
+                ERC20(currentReward).safeApprove(_newRouter, type(uint).max);
+            }
+        }
         router = _newRouter;
     }
 
