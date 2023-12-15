@@ -181,6 +181,8 @@ contract OperationTest is Setup {
         vm.prank(management); 
         strategy.emergencyWithdraw(type(uint256).max);
         assertGe(asset.balanceOf(address(strategy)), _amount, "!all in asset");
+        vm.prank(management);
+        strategy.setAutocompound(false);
 
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -220,6 +222,8 @@ contract OperationTest is Setup {
         vm.prank(management);
         strategy.emergencyWithdraw(_amount);
         assertGe(asset.balanceOf(address(strategy)), Math.min(_amount, _emergencyWithdrawAmount), "!all in asset");
+        vm.prank(management);
+        strategy.setAutocompound(false);
 
         vm.prank(keeper);
         (profit, loss) = strategy.report();

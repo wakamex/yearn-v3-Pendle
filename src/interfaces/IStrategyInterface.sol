@@ -22,4 +22,5 @@ interface IStrategyInterface is IStrategy {
     function setMidRouteNativeToToken0(address[] calldata _tokensMidRouteNativeToToken0) external;
     function setMidRouteNativeToToken1(address[] calldata _tokensMidRouteNativeToToken1) external;
     function setProfitLimitRatio(uint256) external;
+    function setAutocompound(bool) external;
 }

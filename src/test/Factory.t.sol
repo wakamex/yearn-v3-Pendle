@@ -50,6 +50,7 @@ contract FactoryTest is Setup {
         _PID = getPID(_asset);
         console.log("_PID", _PID);
         _NATIVE = tokenAddrs["WMATIC"];
+        vm.prank(management);
         strategyTest = IStrategyInterface(strategyFactory.newGammaLPCompounder(_asset, _PID, _NATIVE, "2"));
         strategy_testing(strategyTest, _amount);
 /*
@@ -95,6 +96,7 @@ contract FactoryTest is Setup {
         console.log("WMATIC-MATICX-LP");
         _asset = tokenAddrs["WMATIC-MATICX-LP"];
         _PID = getPID(_asset);
+        vm.prank(management);
         strategyTest = IStrategyInterface(strategyFactory.newGammaLPCompounder(_asset, _PID, _NATIVE, ""));
         strategy_testing(strategyTest, _amount);
     }

@@ -20,6 +20,9 @@ import {IDQUICK} from "./interfaces/IDQUICK.sol";
 contract GammaLPCompounder is BaseHealthCheck {
     using SafeERC20 for ERC20;
 
+    // Bool to keep autocompounding the strategy. Defaults to true. Set this to false to deactivate the strategy completely after a shutdown & emergencyWithdraw to leave everything withdrawable in asset.
+    bool public autocompound = true;
+
     address[] public rewards;
     mapping(address => bytes) public midRouteRewardToNative;
     bytes public midRouteNativeToToken0;
@@ -69,7 +72,7 @@ contract GammaLPCompounder is BaseHealthCheck {
     }
 
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
-        if (!TokenizedStrategy.isShutdown()) {
+        if (autocompound) {
             IMasterChef(MASTERCHEF).harvest(PID, address(this)); //harvest LP
             
             uint256 rewardBalance = _balanceDQUICK(); //DQUICK --> QUICK
@@ -216,18 +219,38 @@ contract GammaLPCompounder is BaseHealthCheck {
         return _balanceStaked();
     }
 
+    /**
+     * @notice Set wether or not to keep autocompounding the strategy. Defaults to true. Set this to false to deactivate the strategy completely after a shutdown & emergencyWithdraw to leave everything withdrawable in asset.
+     * @param _autocompound Wether or not to deactivate the autocompounding of the strategy.
+     */
+    function setAutocompound(bool _autocompound) external onlyManagement {
+        autocompound = _autocompound;
+    }
+
+    /**
+     * @notice Add a reward address that will be sold to autocompound the LP.
+     * @param _rewardToken address of the reward token to be sold.
+     */
     function addReward(address _rewardToken) external onlyManagement {
         ERC20(_rewardToken).safeApprove(router, 0);
         ERC20(_rewardToken).safeApprove(router, type(uint).max);
         rewards.push(_rewardToken);
     }
 
+    /**
+     * @notice Remove a reward by its index in the reward array to stop it being autocompounded to the LP.
+     * @param _rewardIndex index inside the reward array for the reward to remove.
+     */
     function removeRewardByIndex(uint256 _rewardIndex) external onlyManagement {
         ERC20(rewards[_rewardIndex]).safeApprove(router, 0);
         rewards[_rewardIndex] = rewards[rewards.length - 1];
         rewards.pop();
     }
 
+    /**
+     * @notice Set the route for a specific reward token inbetween the fixed start point Reward and the fixed endpoint NATIVE declared token (usually wrapped gas). 
+     * @param _tokensMidRouteRewardToNative array of addresses describing each token in the route inbetween the reward and the NATIVE token.
+     */
     function setMidRouteRewardToNative(address _rewardToken, address[] calldata _tokensMidRouteRewardToNative) external onlyManagement {
         uint256 length = _tokensMidRouteRewardToNative.length;
         if (length == 0) {
@@ -241,6 +264,10 @@ contract GammaLPCompounder is BaseHealthCheck {
         }        
     }
 
+    /**
+     * @notice Set the route for the NATIVE declared token (usually wrapped gas) inbetween the NATIVE token and the token0 of the LP. 
+     * @param _tokensMidRouteNativeToToken0 array of addresses describing each token inbetween the route inbetween the NATIVE token and the token0 of the LP.
+     */
     function setMidRouteNativeToToken0(address[] calldata _tokensMidRouteNativeToToken0) external onlyManagement {
         uint256 length = _tokensMidRouteNativeToToken0.length;
         if (length == 0) {
@@ -254,6 +281,10 @@ contract GammaLPCompounder is BaseHealthCheck {
         }        
     }
 
+    /**
+     * @notice Set the route for the NATIVE declared token (usually wrapped gas) inbetween the NATIVE token and the token1 of the LP. 
+     * @param _tokensMidRouteNativeToToken1 array of addresses describing each token inbetween the route inbetween the NATIVE token and the token1 of the LP.
+     */
     function setMidRouteNativeToToken1(address[] calldata _tokensMidRouteNativeToToken1) external onlyManagement {
         uint256 length = _tokensMidRouteNativeToToken1.length;
         if (length == 0) {

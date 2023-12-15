@@ -80,6 +80,7 @@ contract Setup is ExtendedTest, IEvents {
         strategyFactory = setUpStrategyFactory();
 
         // Deploy strategy and set variables
+        vm.prank(management);
         strategy = IStrategyInterface(strategyFactory.newGammaLPCompounder(address(asset), PID, NATIVE, "Strategy"));
         setUpStrategy();
 

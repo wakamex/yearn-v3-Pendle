@@ -40,7 +40,7 @@ contract GammaLPCompounderFactory {
         uint256 _PID,
         address _NATIVE,
         string memory _name
-    ) external returns (address) {
+    ) external onlyManagement returns (address) {
         // We need to use the custom interface with the
         // tokenized strategies available setters.
         IStrategyInterface newStrategy = IStrategyInterface(address(new GammaLPCompounder(_asset, _PID, _NATIVE, _name)));
@@ -73,7 +73,7 @@ contract GammaLPCompounderFactory {
         address[] calldata _rewards,
         address[][] calldata _midRouteRewardToNative,
         string memory _name
-    ) external returns (address) {
+    ) external onlyManagement returns (address) {
 
         IStrategyInterface newStrategy = IStrategyInterface(address(new GammaLPCompounder(_asset, _PID, _NATIVE, _name)));
         
@@ -101,15 +101,24 @@ contract GammaLPCompounderFactory {
         return address(newStrategy);
     }
 
-
     /**
      * @notice Retrieve the address of a strategy by LP address
      * @param _asset LP address
-     * @return . strategy address
+     * @return strategy address
      */
     function getStrategyByAsset(address _asset) external view returns (address) {
         return assetToStrategy[_asset];
     }
+
+    /**
+     * @notice Check if a strategy has been deployed by this Factory
+     * @param _strategy strategy address
+     */
+    function isDeployedStrategy(address _strategy) external view returns (bool) {
+        address _asset = IStrategyInterface(_strategy).asset();
+        return assetToStrategy[_asset] == _strategy;
+    }
+
 
     function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
         assetToStrategy[_asset] = _strategy;
