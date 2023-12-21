@@ -161,6 +161,50 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(performanceFeeRecipient), expectedShares, "!perf fee out");
     }
 
+    function test_handleQuickInHarvestCycle(uint256 _quickAmount) external {
+        setPerformanceFeeToZero(address(strategy));
+        uint256 _amount = 1_000_000 * 1e18; // dont' really care whats deposited by user we check the dquick handle
+		//vm.assume(_quickAmount > minFuzzAmount && _quickAmount < maxFuzzAmount);
+        vm.assume(_quickAmount > minFuzzAmount && _quickAmount < _amount);
+
+		// Deposit into strategy
+		mintAndDepositIntoStrategy(strategy, user, _amount);
+
+		checkStrategyTotals(strategy, _amount, _amount, 0);
+
+		// Earn some DQUICK, just to trigger _balanceOfDQUICK > 0
+		skip(1 hours);
+		// give strategy some more quick, want to test how it manages the idle tokens
+		deal(
+			0xB5C064F955D8e7F38fE0460C556a72987494eE17, // QUICK
+			address(strategy),
+			_quickAmount
+		);
+
+		vm.prank(keeper);
+		(uint256 profit, uint256 loss) = strategy.report();
+
+		// Check return Values
+		assertGe(profit, 0, "!profit");
+		assertEq(loss, 0, "!loss");
+
+        skip(strategy.profitMaxUnlockTime());
+
+        uint256 balanceBefore = asset.balanceOf(user);
+
+        // Withdraw all funds
+        vm.prank(user);
+        strategy.redeem(_amount, user, user);
+
+        checkStrategyTotals(strategy, 0, 0, 0);
+
+        assertGe(
+            asset.balanceOf(user),
+            balanceBefore + _amount,
+            "!final balance"
+        );
+    }
+
     function test_emergencyWithdrawAll(uint256 _amount) public {
         setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);

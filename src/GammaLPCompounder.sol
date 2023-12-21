@@ -106,6 +106,9 @@ contract GammaLPCompounder is BaseHealthCheck {
 
     function _addLiquidity() internal {
         uint256 NATIVEbalance = _balanceNATIVE(); //NATIVE balance to invest into LP tokens
+        if (NATIVEbalance == 0) {
+            return;
+        }
         uint256 amountToken0 = NATIVEbalance / 2;
         uint256 amountToken1 = NATIVEbalance - amountToken0;
 
@@ -131,14 +134,16 @@ contract GammaLPCompounder is BaseHealthCheck {
         //Correct deposit arguments by actual swap results:
         amountToken0 = ERC20(token0).balanceOf(address(this));
         amountToken1 = ERC20(token1).balanceOf(address(this));
-        (amountStart, amountEnd) = IGamma(GAMMA).getDepositAmount(address(asset), token0, amountToken0);
-        (, uint256 amountEndToken0) = IGamma(GAMMA).getDepositAmount(address(asset), token1, amountToken1);
-        if (amountToken1 > amountEnd) {
-            amountToken1 = amountEnd;
-        } else if (amountToken1 < amountStart) {
-            (, amountToken0) = IGamma(GAMMA).getDepositAmount(address(asset), token1, amountToken1);
+        if (amountToken0 != 0 && amountToken1 != 0) {
+            (amountStart, amountEnd) = IGamma(GAMMA).getDepositAmount(address(asset), token0, amountToken0);
+            (, uint256 amountEndToken0) = IGamma(GAMMA).getDepositAmount(address(asset), token1, amountToken1);
+            if (amountToken1 > amountEnd) {
+                amountToken1 = amountEnd;
+            } else if (amountToken1 < amountStart) {
+                (, amountToken0) = IGamma(GAMMA).getDepositAmount(address(asset), token1, amountToken1);
+            }
+            amountToken0 = Math.min(amountToken0, amountEndToken0);
         }
-        amountToken0 = Math.min(amountToken0, amountEndToken0);
         uint[4] memory minIn; //pass in empty array
         IGamma(GAMMA).deposit(amountToken0, amountToken1, address(this), address(asset), minIn); //create LP
     }
