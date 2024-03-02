@@ -13,14 +13,8 @@ interface IStrategyInterface is IStrategy {
 
     function balanceAsset() external view returns (uint256);
     function balanceStaked() external view returns (uint256);
-    function balanceDQUICK() external view returns (uint256);
-    function balanceQUICK() external view returns (uint256);
-    function balanceNATIVE() external view returns (uint256);
 
-    function addReward(address _rewardToken) external;
-    function setMidRouteRewardToNative(address _rewardToken, address[] calldata _tokensMidRouteRewardToNative) external;
-    function setMidRouteNativeToToken0(address[] calldata _tokensMidRouteNativeToToken0) external;
-    function setMidRouteNativeToToken1(address[] calldata _tokensMidRouteNativeToToken1) external;
+    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase) external;
     function setProfitLimitRatio(uint256) external;
     function setAutocompound(bool) external;
 }

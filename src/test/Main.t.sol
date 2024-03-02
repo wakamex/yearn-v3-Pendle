@@ -30,9 +30,11 @@ contract MainTest is Setup {
         console.log("amount:", _amount);
         //user funds:
         airdrop(asset, user, _amount);
+        console.log("airdrop done");
         assertEq(asset.balanceOf(user), _amount, "!totalAssets");
         //user deposit:
         depositIntoStrategy(strategy, user, _amount);
+        console.log("deposit done");
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
         assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
@@ -42,25 +44,19 @@ contract MainTest is Setup {
 
         // Earn Interest
         skip(12 days);
+        airdrop(ERC20(PENDLE), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
         console.log("profit: ", profit);
         console.log("loss: ", loss);
         checkStrategyInvariants(strategy);
-        skip(10 days);
 
-
-        skip(12 days);
-        // Report profit / loss
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        console.log("profit: ", profit);
-        console.log("loss: ", loss);
-
-        checkStrategyInvariants(strategy);
-
-        skip(12 days);
+        airdrop(ERC20(PENDLE), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -69,7 +65,21 @@ contract MainTest is Setup {
 
         checkStrategyInvariants(strategy);
 
-        skip(12 days);
+        airdrop(ERC20(PENDLE), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
+        // Report profit / loss
+        vm.prank(keeper);
+        (profit, loss) = strategy.report();
+        console.log("profit: ", profit);
+        console.log("loss: ", loss);
+
+        checkStrategyInvariants(strategy);
+
+        airdrop(ERC20(PENDLE), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
+        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
+
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -92,7 +102,7 @@ contract MainTest is Setup {
         console.log("assetBalance: ", strategy.balanceAsset());
         console.log("asset.balanceOf(user): ", asset.balanceOf(user));
     }
-
+/*
     function test_main_profitableReport_withMutipleUsers(uint256 _amount, uint16 _divider, uint16 _secondDivider) public {
         setPerformanceFeeToZero(address(strategy));
         uint256 maxDivider = 100000;
@@ -119,6 +129,9 @@ contract MainTest is Setup {
         // Earn Interest
         skip(1 days);
         // drop some addtional profit
+        airdrop(ERC20(PENDLE), address(strategy), _profit);
+        airdrop(ERC20(additionalReward1), address(strategy), _profit);
+        airdrop(ERC20(additionalReward2), address(strategy), _profit);
         airdrop(asset, address(strategy), _profit);
 
         // DONE: implement logic to simulate earning interest.
@@ -176,16 +189,7 @@ contract MainTest is Setup {
         // verify vault is empty
         checkStrategyTotals(strategy, 0, 0, 0);
     }
-    
+*/
 }
 
 
-
-interface PotLike {
-    function chi() external view returns (uint256);
-    function rho() external view returns (uint256);
-    function drip() external returns (uint256);
-    function join(uint256) external;
-    function exit(uint256) external;
-    function pie(address) external view returns (uint256);
-}

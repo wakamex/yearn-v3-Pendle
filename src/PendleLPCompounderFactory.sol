@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
 
-import {GammaLPCompounder} from "./GammaLPCompounder.sol";
+import {PendleLPCompounder} from "./PendleLPCompounder.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
-contract GammaLPCompounderFactory {
-    event NewGammaLPCompounder(address indexed strategy, address indexed asset);
+contract PendleLPCompounderFactory {
+    event NewPendleLPCompounder(address indexed strategy, address indexed asset);
 
     address public management;
     address public performanceFeeRecipient;
@@ -30,20 +30,21 @@ contract GammaLPCompounderFactory {
 
     /**
      * @notice Deploy a new Gamma Stable LP Compounder Strategy.
-     * @dev This will set the msg.sender to all of the permissioned roles.
-     * @param _asset The underlying asset for the lender to use.
-     * @param _name The name for the lender to use.
      * @return . The address of the new lender.
      */
-    function newGammaLPCompounder(
+    function newPendleLPCompounder(
         address _asset,
-        uint256 _PID,
-        address _NATIVE,
+        address _pendleStaking, 
+        address _PENDLE, 
+        uint24 _feePENDLEtoBase, 
+        address _base, 
+        uint24 _feeBaseToTargetToken, 
+        address _targetToken, 
+        address _GOV, 
         string memory _name
     ) external onlyManagement returns (address) {
-        // We need to use the custom interface with the
-        // tokenized strategies available setters.
-        IStrategyInterface newStrategy = IStrategyInterface(address(new GammaLPCompounder(_asset, _PID, _NATIVE, _name)));
+
+        IStrategyInterface newStrategy = IStrategyInterface(address(new PendleLPCompounder(_asset, _pendleStaking, _PENDLE, _feePENDLEtoBase, _base, _feeBaseToTargetToken, _targetToken, _GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -51,50 +52,7 @@ contract GammaLPCompounderFactory {
 
         newStrategy.setPendingManagement(management);
 
-        emit NewGammaLPCompounder(address(newStrategy), _asset);
-
-        assetToStrategy[_asset] = address(newStrategy);
-
-        return address(newStrategy);
-    }
-
-    /**
-     * @notice Deploy a new Gamma Stable LP Compounder Strategy.
-     * @dev This will set the msg.sender to all of the permissioned roles.
-     * @param _asset The underlying asset for the lender to use.
-     * @param _name The name for the lender to use.
-     * @return . The address of the new lender.
-     */
-    function newGammaLPCompounder(
-        address _asset,
-        uint256 _PID,
-        address _NATIVE,
-        address[][2] calldata _midRouteNativeToToken0Token1,
-        address[] calldata _rewards,
-        address[][] calldata _midRouteRewardToNative,
-        string memory _name
-    ) external onlyManagement returns (address) {
-
-        IStrategyInterface newStrategy = IStrategyInterface(address(new GammaLPCompounder(_asset, _PID, _NATIVE, _name)));
-        
-        newStrategy.setMidRouteNativeToToken0(_midRouteNativeToToken0Token1[0]);
-        newStrategy.setMidRouteNativeToToken1(_midRouteNativeToToken0Token1[1]);
-
-        uint256 rewardsLength = _rewards.length;
-        if (rewardsLength > 0) {
-            for (uint256 i; i < rewardsLength; ++i) {
-                newStrategy.addReward(_rewards[i]);                
-                newStrategy.setMidRouteRewardToNative(_rewards[i], _midRouteRewardToNative[i]);
-            }
-        }
-
-        newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
-
-        newStrategy.setKeeper(keeper);
-
-        newStrategy.setPendingManagement(management);
-
-        emit NewGammaLPCompounder(address(newStrategy), _asset);
+        emit NewPendleLPCompounder(address(newStrategy), _asset);
 
         assetToStrategy[_asset] = address(newStrategy);
 

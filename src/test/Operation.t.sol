@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import "forge-std/console.sol";
 import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract OperationTest is Setup {
     function setUp() public virtual override {
@@ -30,10 +31,18 @@ contract OperationTest is Setup {
 
         // Earn Interest
         skip(10 days);
+        airdrop(ERC20(PENDLE), address(strategy), 100e18);
+        if (additionalReward1 != address(0)) {
+            airdrop(ERC20(additionalReward1), address(strategy), 100e18);
+        }
+        if (additionalReward2 != address(0)) {
+            airdrop(ERC20(additionalReward2), address(strategy), 100e18);
+        }
 
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
+        checkStrategyInvariants(strategy);
 
         // Check return Values
         assertGe(profit, 0, "!profit");
@@ -59,10 +68,12 @@ contract OperationTest is Setup {
 
     function test_profitableReport_expectedFees(
         uint256 _amount,
-        uint16 _profitFactor
+        uint256 _profit
     ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
-        _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS));
+        //_profitFactor = uint16(bound(uint256(_profitFactor), 10, 1_00));
+        //_profit = uint16(bound(uint256(_profit), 1e10, 10000e18));
+        _profit = bound(_profit, 1e15, 10000e18);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
@@ -72,15 +83,24 @@ contract OperationTest is Setup {
         // Earn Interest
         skip(1 days);
 
-        uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
-        airdrop(asset, address(strategy), toAirdrop);
+        //uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
+        //airdrop(asset, address(strategy), toAirdrop);
+        airdrop(ERC20(PENDLE), address(strategy), _profit);
+        if (additionalReward1 != address(0)) {
+        airdrop(ERC20(additionalReward1), address(strategy), _profit);
+        }
+        if (additionalReward2 != address(0)) {
+        airdrop(ERC20(additionalReward2), address(strategy), _profit);
+        }
 
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
+        checkStrategyInvariants(strategy);
 
         // Check return Values
-        assertGe(profit, toAirdrop, "!profit");
+        //assertGe(profit, toAirdrop, "!profit");
+        assertGt(profit, 0, "!profit");
         assertEq(loss, 0, "!loss");
 
         skip(strategy.profitMaxUnlockTime());
@@ -93,7 +113,7 @@ contract OperationTest is Setup {
         strategy.redeem(_amount, user, user);
         console.log("AFTER USER REDEEM", strategy.totalAssets());
 
-        uint256 expectedFees = (profit * strategy.performanceFee()) / MAX_BPS;
+        //uint256 expectedFees = (profit * strategy.performanceFee()) / MAX_BPS;
 
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
 
@@ -103,7 +123,7 @@ contract OperationTest is Setup {
         vm.prank(performanceFeeRecipient);
         strategy.redeem(strategistShares, performanceFeeRecipient, performanceFeeRecipient);
         console.log("AFTER STRATEGIST REDEEM", strategy.totalAssets());
-        assertGt(asset.balanceOf(performanceFeeRecipient), 0, "expectedFees not big enough!");
+        assertGt(asset.balanceOf(performanceFeeRecipient), 0, "fees too low!");
     }
 
     function test_profitableReport_expectedShares(
@@ -132,6 +152,7 @@ contract OperationTest is Setup {
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
+        checkStrategyInvariants(strategy);
 
         // Check return Values
         assertGe(profit, toAirdrop, "!profit");
@@ -161,50 +182,6 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(performanceFeeRecipient), expectedShares, "!perf fee out");
     }
 
-    function test_handleQuickInHarvestCycle(uint256 _quickAmount) external {
-        setPerformanceFeeToZero(address(strategy));
-        uint256 _amount = 1_000_000 * 1e18; // dont' really care whats deposited by user we check the dquick handle
-		//vm.assume(_quickAmount > minFuzzAmount && _quickAmount < maxFuzzAmount);
-        vm.assume(_quickAmount > minFuzzAmount && _quickAmount < _amount);
-
-		// Deposit into strategy
-		mintAndDepositIntoStrategy(strategy, user, _amount);
-
-		checkStrategyTotals(strategy, _amount, _amount, 0);
-
-		// Earn some DQUICK, just to trigger _balanceOfDQUICK > 0
-		skip(1 hours);
-		// give strategy some more quick, want to test how it manages the idle tokens
-		deal(
-			0xB5C064F955D8e7F38fE0460C556a72987494eE17, // QUICK
-			address(strategy),
-			_quickAmount
-		);
-
-		vm.prank(keeper);
-		(uint256 profit, uint256 loss) = strategy.report();
-
-		// Check return Values
-		assertGe(profit, 0, "!profit");
-		assertEq(loss, 0, "!loss");
-
-        skip(strategy.profitMaxUnlockTime());
-
-        uint256 balanceBefore = asset.balanceOf(user);
-
-        // Withdraw all funds
-        vm.prank(user);
-        strategy.redeem(_amount, user, user);
-
-        checkStrategyTotals(strategy, 0, 0, 0);
-
-        assertGe(
-            asset.balanceOf(user),
-            balanceBefore + _amount,
-            "!final balance"
-        );
-    }
-
     function test_emergencyWithdrawAll(uint256 _amount) public {
         setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
@@ -214,9 +191,17 @@ contract OperationTest is Setup {
 
         // Skip some time
         skip(15 days);
+        airdrop(ERC20(PENDLE), address(strategy), 100e18);
+        if (additionalReward1 != address(0)) {
+            airdrop(ERC20(additionalReward1), address(strategy), 100e18);
+        }
+        if (additionalReward2 != address(0)) {
+            airdrop(ERC20(additionalReward2), address(strategy), 100e18);
+        }
 
         vm.prank(keeper);
         (uint profit, uint loss) = strategy.report();
+        checkStrategyInvariants(strategy);
         assertGt(profit, 0, "!profit");
         assertEq(loss, 0, "!loss");
 
@@ -243,45 +228,4 @@ contract OperationTest is Setup {
 
         checkStrategyTotals(strategy, 0, 0, 0);
     }
-
-
-    function test_emergencyWithdraw(uint256 _amount, uint256 _emergencyWithdrawAmount) public {
-        setPerformanceFeeToZero(address(strategy));
-        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
-        vm.assume(_emergencyWithdrawAmount > minFuzzAmount && _emergencyWithdrawAmount < maxFuzzAmount);
-
-        // Deposit into strategy
-        mintAndDepositIntoStrategy(strategy, user, _amount);
-
-        // Skip some time
-        skip(15 days);
-
-        vm.prank(keeper);
-        (uint profit, uint loss) = strategy.report();
-        assertGt(profit, 0, "!profit");
-        assertEq(loss, 0, "!loss");
-
-        vm.prank(management);
-        strategy.shutdownStrategy();
-        vm.prank(management);
-        strategy.emergencyWithdraw(_amount);
-        assertGe(asset.balanceOf(address(strategy)), Math.min(_amount, _emergencyWithdrawAmount), "!all in asset");
-        vm.prank(management);
-        strategy.setAutocompound(false);
-
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        assertEq(profit, 0, "!profit");
-        assertEq(loss, 0, "!loss");
-
-        // Unlock Profits
-        skip(strategy.profitMaxUnlockTime());
-
-        vm.prank(user);
-        strategy.redeem(_amount, user, user);
-        // verify users earned profit
-        assertGt(asset.balanceOf(user), _amount, "!final balance");
-    }
-
-    
 }

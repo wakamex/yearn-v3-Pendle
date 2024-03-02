@@ -2,10 +2,15 @@
 pragma solidity 0.8.18;
 
 interface IStrategyFactoryInterface {
-    function newGammaLPCompounder(
+    function newPendleLPCompounder(
         address _asset,
-        uint256 _PID,
-        address _NATIVE,
+        address _pendleStaking, 
+        address _PENDLE, 
+        uint24 _feePENDLEtoBase, 
+        address _base, 
+        uint24 _feeBaseToTargetToken, 
+        address _targetToken, 
+        address _GOV, 
         string memory _name
     ) external returns (address);
 

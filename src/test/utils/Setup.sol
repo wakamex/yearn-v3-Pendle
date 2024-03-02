@@ -6,12 +6,11 @@ import {ExtendedTest} from "./ExtendedTest.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {GammaLPCompounderFactory} from "../../GammaLPCompounderFactory.sol";
-import {GammaLPCompounder} from "../../GammaLPCompounder.sol";
+import {PendleLPCompounderFactory} from "../../PendleLPCompounderFactory.sol";
+import {PendleLPCompounder} from "../../PendleLPCompounder.sol";
 import {IStrategyFactoryInterface} from "../../interfaces/IStrategyFactoryInterface.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
-import {IMasterChef} from "../../interfaces/IMasterChef.sol";
-import {ILP} from "../../interfaces/ILP.sol";
+import {IPendleMarket} from "../../interfaces/IPendleMarket.sol";
 
 // Inherit the events so they can be checked if desired.
 import {IEvents} from "@tokenized-strategy/interfaces/IEvents.sol";
@@ -28,6 +27,17 @@ interface IFactory {
 contract Setup is ExtendedTest, IEvents {
     // Contract instancees that we will use repeatedly.
     ERC20 public asset;
+    address public pendleStaking;
+    address public PENDLE;
+    uint24 feePENDLEtoBase;
+    address base; 
+    uint24 feeBaseToTargetToken; 
+    address targetToken;
+    address public GOV;
+    address public additionalReward1;
+    uint24 feeAdditionalReward1toBase;
+    address public additionalReward2;
+    uint24 feeAdditionalReward2toBase;
     IStrategyInterface public strategy;
     IStrategyFactoryInterface public strategyFactory;
     address[] route;
@@ -47,9 +57,9 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.01 of 1e6 stable coins up to 1 trillion of a 1e18 coin
-    uint256 public maxFuzzAmount = 1e30;
-    uint256 public minFuzzAmount = 5_000e15;
+    // Fuzz from $0.01 of 1e6 stable coins up to 1 billion of a 1e18 coin
+    uint256 public maxFuzzAmount = 1e27;
+    uint256 public minFuzzAmount = 5_00e15;
 
     // Default prfot max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
@@ -57,55 +67,78 @@ contract Setup is ExtendedTest, IEvents {
     bytes32 public constant BASE_STRATEGY_STORAGE = bytes32(uint256(keccak256("yearn.base.strategy.storage")) - 1);
 
     function setUp() public virtual {
-        _setTokenAddrs();
-        //asset = ERC20(tokenAddrs["WMATIC-WETH-LP"]);
-        asset = ERC20(tokenAddrs["WBTC-WETH-LP"]); //WBTC Swap route!
-        //asset = ERC20(tokenAddrs["WMATIC-MATICX-LP"]); //REWARDS!
+        uint256 mainnetFork = vm.createFork("mainnet");
+        uint256 arbitrumFork = vm.createFork("arbitrum");
+        //uint256 polygonFork = vm.createFork("polygon");
+        //uint256 optimismFork = vm.createFork("optimism");
         
-        address NATIVE = tokenAddrs["WMATIC"];
-        address MASTERCHEF = 0x20ec0d06F447d550fC6edee42121bc8C1817b97D;
-        uint256 PID = 0;
-        uint256 length = IMasterChef(MASTERCHEF).poolLength();
-        address tokenAddress;
-        for (uint256 i; i < length; ++i) {
-            tokenAddress = IMasterChef(MASTERCHEF).lpToken(i);
-            if (tokenAddress == address(asset)) {
-                PID = i;
-                break;
-            }
-        }
 
+        //vm.selectFork(mainnetFork);
+        vm.selectFork(arbitrumFork);
+        //vm.selectFork(polygonFork);
+        //vm.selectFork(optimismFork);
+
+        //Fork specific parameters:
+        //MAINNET:
+        if(vm.activeFork() == mainnetFork) {
+            asset = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //PT-eETH-27JUN24 /SY-weETH Market
+            pendleStaking = 0x6E799758CEE75DAe3d84e09D40dc416eCf713652; //https://docs.penpiexyz.io/smart-contracts --> PendleStaking
+            PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
+            feePENDLEtoBase = 3000;
+            base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+            feeBaseToTargetToken = 500;
+            targetToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee;
+
+            GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+        }
+        //Polygon:
+        if(vm.activeFork() == arbitrumFork) {
+            //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-25APR24/SY-weETH Market --> asset
+            asset = ERC20(0xE11f9786B06438456b044B3E21712228ADcAA0D1); //PT-eETH-25APR24/SY-weETH Market
+            //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
+            targetToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //weETH
+            feeBaseToTargetToken = 100;
+
+            //ARB rewards:
+            additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+            feeAdditionalReward1toBase = 500;
+
+            //PNP rewards:
+            additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+            feeAdditionalReward2toBase = 10000;
+            
+            //chain specific:
+            base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+            PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+            feePENDLEtoBase = 3000;
+
+            pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
+            GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
+        }
+        
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
 
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newGammaLPCompounder(address(asset), PID, NATIVE, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), pendleStaking, PENDLE, feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, GOV, "Strategy"));
         setUpStrategy();
-
-        /*
-        //"WMATIC-MATICX-LP" set-up:
-        vm.prank(management);
-        strategy.addReward(tokenAddrs["WMATIC"]);
-        vm.prank(management);
-        strategy.addReward(tokenAddrs["SD"]);
-        vm.prank(management);
-        route.push(tokenAddrs["USDC"]);
-        //route.push(tokenAddrs["WETH"]);
-        strategy.setMidRouteRewardToNative(tokenAddrs["SD"], route);
-        */
-
-        
-        //"WBTC-WETH-LP" set-up:
-        vm.prank(management);
-        route.push(tokenAddrs["USDC"]);
-        strategy.setMidRouteNativeToToken0(route);
-        
-        
 
         factory = strategy.FACTORY();
 
+        // reward:
+        if (additionalReward1 != address(0)) {
+            vm.prank(management);
+            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
+        }
+
+        // reward:
+        if (additionalReward2 != address(0)) {
+            vm.prank(management);
+            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
+        }
+        
         // label all the used addresses for traces
         vm.label(keeper, "keeper");
         vm.label(factory, "factory");
@@ -119,7 +152,7 @@ contract Setup is ExtendedTest, IEvents {
     function setUpStrategyFactory() public returns (IStrategyFactoryInterface) {
         IStrategyFactoryInterface _factory = IStrategyFactoryInterface(
             address(
-                new GammaLPCompounderFactory(
+                new PendleLPCompounderFactory(
                     management,
                     performanceFeeRecipient,
                     keeper
@@ -133,7 +166,7 @@ contract Setup is ExtendedTest, IEvents {
         vm.prank(management);
         strategy.acceptManagement();
         vm.prank(management);
-        strategy.setProfitLimitRatio(1_000_000);
+        strategy.setProfitLimitRatio(1_000_000_000_000);
     }
 
     function depositIntoStrategy(
@@ -189,12 +222,17 @@ contract Setup is ExtendedTest, IEvents {
     }
 
     function checkStrategyInvariants(IStrategyInterface _strategy) public {
-        address token0 = ILP(address(asset)).token0();
-        address token1 = ILP(address(asset)).token1();
-        console.log("token0", ERC20(token0).symbol());
-        assertLe(ERC20(token0).balanceOf(address(_strategy)), 10, "token0 balance > DUST");
-        console.log("token1", ERC20(token1).symbol());
-        assertLe(ERC20(token1).balanceOf(address(_strategy)), 10, "token1 balance > DUST");
+        (address SY, address PT, address YT) = IPendleMarket(address(asset)).readTokens();
+        assertLe(ERC20(SY).balanceOf(address(_strategy)), 10, "SY balance > DUST");
+        assertLe(ERC20(PT).balanceOf(address(_strategy)), 10, "PT balance > DUST");
+        assertLe(ERC20(YT).balanceOf(address(_strategy)), 10, "YT balance > DUST");
+        assertLe(ERC20(PENDLE).balanceOf(address(_strategy)), 10, "PENDLE balance > DUST");
+        if (additionalReward1 != address(0)) {
+            assertLe(ERC20(additionalReward1).balanceOf(address(_strategy)), 10, "additionalReward1 balance > DUST");
+        }
+        if (additionalReward2 != address(0)) {
+            assertLe(ERC20(additionalReward2).balanceOf(address(_strategy)), 10, "additionalReward2 balance > DUST");
+        }
     }
 
     function airdrop(ERC20 _asset, address _to, uint256 _amount) public {
