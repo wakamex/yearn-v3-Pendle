@@ -3,8 +3,6 @@ pragma solidity 0.8.18;
 
 interface IPendleStaking {
     function masterPenpie() external view returns (address);
-    function depositMarket(address _market, address _for, address _from, uint256 _amount) external;
-    function withdrawMarket(address _market, address _for, uint256 _amount) external;
     function marketDepositHelper() external view returns (address);
 }
 

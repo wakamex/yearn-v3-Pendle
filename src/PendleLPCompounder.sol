@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
-import {BaseHealthCheck} from "@periphery/HealthCheck/BaseHealthCheck.sol";
+
+import {BaseHealthCheck} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -12,17 +13,21 @@ import {ISY} from "./interfaces/ISY.sol";
 import {IPendleRouter} from "./interfaces/IPendleRouter.sol";
 
 import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
+import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
 
 /// @title yearn-v3-Pendle
 /// @author mil0x
 /// @notice yearn-v3 Strategy that autocompounds Pendle LP positions.
-contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
+contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper {
     using SafeERC20 for ERC20;
 
     // Bool to keep autocompounding the strategy. Defaults to true. Set this to false to deactivate the strategy completely after a shutdown & emergencyWithdraw to leave everything withdrawable in asset.
     bool public autocompound = true;
 
-    bool public claimPNP; //claim the penpie PNP token. Most pools don't have it as a reward, so this is default as false.
+    // If rewards should be sold through Auctions.
+    bool public useAuction;
+
+    address[] public rewards;
 
     // Mapping to be set by management for any reward tokens.
     // This can be used to set different mins for different tokens
@@ -42,12 +47,9 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
     address public immutable PT;
     address public immutable YT;
     address public immutable targetToken;
-
-
-    address[] public rewards;
-    
-    uint256 private constant WAD = 1e18;
     address public immutable GOV; //yearn governance
+
+    uint256 private constant WAD = 1e18;
 
     constructor(address _asset, address _pendleStaking, address _PENDLE, uint24 _feePENDLEtoBase, address _base, uint24 _feeBaseToTargetToken, address _targetToken, address _GOV, string memory _name) BaseHealthCheck(_asset, _name) {
         routerParams.guessMin = 0;
@@ -65,8 +67,7 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
         GOV = _GOV;
 
         // Set uni swapper values
-        // We will use the minAmountToSell mapping instead.
-        minAmountToSell = 0;
+        minAmountToSell = 0; // We will use the minAmountToSell mapping instead.
         base = _base;
         router = 0xE592427A0AEce92De3Edee1F18E0157C05861564; //universal uniswapv3 router
         _setUniFees(PENDLE, base, _feePENDLEtoBase);
@@ -107,11 +108,13 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
         //Claim rewards
         address[] memory stakingTokens = new address[](1);
         stakingTokens[0] = address(asset);
-        address[][] memory rewardTokens = new address[][](1);
-        IMasterPenpie(masterPenpie).multiclaimSpecPNP(stakingTokens, rewardTokens, claimPNP);
+        IMasterPenpie(masterPenpie).multiclaim(stakingTokens);
+
+        // If using the Auction contract we are done. If the maturity of the Pendle LP is reached, we cannot compound anymore.
+        if (useAuction || IPendleMarket(address(asset)).isExpired()) return;
 
         //PENDLE --> targetToken
-        uint256 rewardBalance = _balancePENDLE(); 
+        uint256 rewardBalance = _balancePENDLE();
         _swapFrom(PENDLE, targetToken, rewardBalance, 0);
 
         //Other rewards --> targetToken
@@ -124,7 +127,7 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
                 _swapFrom(currentReward, targetToken, rewardBalance, 0);
             }
         }
-        
+
         //targetToken --> SY
         rewardBalance = ERC20(targetToken).balanceOf(address(this));
         if (rewardBalance > 0) {
@@ -168,14 +171,6 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
      */
     function setAutocompound(bool _autocompound) external onlyManagement {
         autocompound = _autocompound;
-    }
-
-    /**
-     * @notice Set wether or not to claim PNP. Defaults to false.
-     * @param _claimPNP Wether or not to claim PNP token.
-     */
-    function setClaimPNP(bool _claimPNP) external onlyManagement {
-        claimPNP = _claimPNP;
     }
 
     /**
@@ -244,6 +239,27 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper {
         routerParams.guessMax = _guessMax; // default: type(uint256).max
         routerParams.maxIteration = _maxIteration; // default: 256
         routerParams.eps = _eps; // default: 1e15 == max 0.1% unused. Alternatively: 1e14 implies that no more than 0.01% unused.
+    }
+
+    ///////////// DUTCH AUCTION FUNCTIONS \\\\\\\\\\\\\\\\\\
+    function setAuction(address _auction) external onlyEmergencyAuthorized {
+        if (_auction != address(0)) {
+            require(Auction(_auction).want() == address(asset), "wrong want");
+        }
+        auction = _auction;
+    }
+
+    function _auctionKicked(address _token) internal virtual override returns (uint256 _kicked) {
+        require(_token != address(asset), "asset");
+        _kicked = super._auctionKicked(_token);
+        require(_kicked >= minAmountToSellMapping[_token], "< minAmount");
+    }
+
+    /**
+     * @notice Set if tokens should be sold through the dutch auction contract.
+     */
+    function setUseAuction(bool _useAuction) external onlyManagement {
+        useAuction = _useAuction;
     }
 
     /*//////////////////////////////////////////////////////////////

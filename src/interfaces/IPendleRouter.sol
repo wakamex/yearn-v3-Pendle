@@ -48,22 +48,6 @@ interface IPendleRouter {
         YT_FOR_SY
     }
 
-    function addLiquidityDualSyAndPt(
-        address receiver,
-        address market,
-        uint256 netSyDesired,
-        uint256 netPtDesired,
-        uint256 minLpOut
-    ) external returns (uint256 netLpOut, uint256 netSyUsed, uint256 netPtUsed);
-
-    function addLiquiditySingleSyKeepYt(
-        address receiver,
-        address market,
-        uint256 netSyIn,
-        uint256 minLpOut,
-        uint256 minYtOut
-    ) external returns (uint256 netLpOut, uint256 netYtOut, uint256 netSyMintPy);
-
     function addLiquiditySingleSy(
         address receiver,
         address market,

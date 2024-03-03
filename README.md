@@ -1,6 +1,6 @@
-# Gamma LP Compounder Strategy for yearn V3
+# Pendle LP Compounder Strategy for yearn V3
 
-This strategy autocompounds rewards for actively managed Gamma LP positions.
+yearn v3 strategy that autocompounds Pendle LP positions.
 
 ### Requirements
 

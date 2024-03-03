@@ -12,7 +12,6 @@ contract OperationTest is Setup {
     }
 
     function testSetupStrategyOK() public {
-        console.log("address of strategy", address(strategy));
         assertTrue(address(0) != address(strategy));
         assertEq(strategy.asset(), address(asset));
         assertEq(strategy.management(), management);

@@ -44,6 +44,7 @@ contract MainTest is Setup {
 
         // Earn Interest
         skip(12 days);
+
         airdrop(ERC20(PENDLE), address(strategy), 10e18);
         airdrop(ERC20(additionalReward1), address(strategy), 10e18);
         airdrop(ERC20(additionalReward2), address(strategy), 10e18);
