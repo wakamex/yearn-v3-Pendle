@@ -22,6 +22,7 @@ contract MainTest is Setup {
     }
 
     function test_main() public {
+        setFees(0, 0);
         //init
         uint256 _amount = 100e18;
         uint256 profit;
@@ -38,8 +39,6 @@ contract MainTest is Setup {
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
         assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
-        console.log("strategy.totalDebt() after deposit: ", strategy.totalDebt());
-        console.log("strategy.totalIdle() after deposit: ", strategy.totalIdle());
         console.log("assetBalance: ", strategy.balanceAsset());
 
         // Earn Interest
@@ -92,25 +91,30 @@ contract MainTest is Setup {
         skip(strategy.profitMaxUnlockTime());
 
         // Withdraw all funds
+        console.log("performanceFeeReceipient: ", strategy.balanceOf(performanceFeeRecipient));
+        console.log("redeem strategy.totalAssets() before redeem: ", strategy.totalAssets());
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-        console.log("redeem strategy.totalAssets() after deposit: ", strategy.totalAssets());
-        console.log("strategy.totalDebt() after deposit: ", strategy.totalDebt());
-        console.log("strategy.totalIdle() after deposit: ", strategy.totalIdle());
+        console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
 
         checkStrategyInvariants(strategy);
         
         console.log("assetBalance: ", strategy.balanceAsset());
         console.log("asset.balanceOf(user): ", asset.balanceOf(user));
+
+        console.log("asset: ", asset.balanceOf(address(strategy)));
+        console.log("before totals");
+        checkStrategyTotals(strategy, 0, 0, 0);
+        console.log("after totals");
     }
 /*
     function test_main_profitableReport_withMutipleUsers(uint256 _amount, uint16 _divider, uint16 _secondDivider) public {
-        setPerformanceFeeToZero(address(strategy));
         uint256 maxDivider = 100000;
         vm.assume(_amount > minFuzzAmount * maxDivider && _amount < maxFuzzAmount);
         // vm.assume(_profit > minFuzzAmount * maxDivider && _profit < maxFuzzAmount);
         vm.assume(_divider > 0 && _divider < maxDivider);
         vm.assume(_secondDivider > 0 && _secondDivider < maxDivider);
+        setFees(0, 0);
 
         // profit must be below 100%
         uint256 _profit = _amount / 10;

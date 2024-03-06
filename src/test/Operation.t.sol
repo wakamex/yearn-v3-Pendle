@@ -21,8 +21,8 @@ contract OperationTest is Setup {
     }
 
     function test_operation_NoFees(uint256 _amount) public {
-        setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        setFees(0, 0);
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
@@ -182,8 +182,8 @@ contract OperationTest is Setup {
     }
 
     function test_emergencyWithdrawAll(uint256 _amount) public {
-        setPerformanceFeeToZero(address(strategy));
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        setFees(0, 0);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
