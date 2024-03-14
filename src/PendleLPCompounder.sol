@@ -11,6 +11,7 @@ import {IPendleStaking, IMarketDepositHelper} from "./interfaces/IPendleStaking.
 import {IMasterPenpie} from "./interfaces/IMasterPenpie.sol";
 import {ISY} from "./interfaces/ISY.sol";
 import {IPendleRouter} from "./interfaces/IPendleRouter.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
 import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
@@ -23,6 +24,9 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
 
     // Bool to keep autocompounding the strategy. Defaults to true. Set this to false to deactivate the strategy completely after a shutdown & emergencyWithdraw to leave everything withdrawable in asset.
     bool public autocompound = true;
+
+    // Bool to set wether or not to unwrap the targetToken before depositing into SY. This enables direct payable deposits. Defaults to false.
+    bool public unwrapTargetTokenToSY;
 
     // If rewards should be sold through Auctions.
     bool public useAuction;
@@ -111,7 +115,7 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         IMasterPenpie(masterPenpie).multiclaim(stakingTokens);
 
         // If using the Auction contract we are done. If the maturity of the Pendle LP is reached, we cannot compound anymore.
-        if (useAuction || IPendleMarket(address(asset)).isExpired()) return;
+        if (useAuction || _isExpired()) return;
 
         //PENDLE --> targetToken
         uint256 rewardBalance = _balancePENDLE();
@@ -130,15 +134,21 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
 
         //targetToken --> SY
         rewardBalance = ERC20(targetToken).balanceOf(address(this));
-        if (rewardBalance > 0) {
-            rewardBalance = ISY(SY).deposit(address(this), targetToken, rewardBalance, 0);
-            //SY --> asset
-            if (rewardBalance > 0) {
-                IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
-                limit.limitRouter = address(0);
-                IPendleRouter(pendleRouter).addLiquiditySingleSy(address(this), address(asset), rewardBalance, 0, routerParams, limit);
-            }
+        if (rewardBalance == 0) return;
+        if (rewardBalance < minAmountToSellMapping[targetToken]) return; //set minAmountToSell for targetToken in case of deposit minimum in SY
+        address _targetToken = targetToken;
+        uint256 payableBalance;
+        if (unwrapTargetTokenToSY) { //for pools that require unwrapped gas as SY deposit asset
+            IWETH(targetToken).withdraw(rewardBalance);
+            _targetToken = 0x0000000000000000000000000000000000000000; //unwrapped
+            payableBalance = rewardBalance;
         }
+        rewardBalance = ISY(SY).deposit{value: payableBalance}(address(this), _targetToken, rewardBalance, 0);
+        //SY --> asset
+        if (rewardBalance == 0) return;
+        IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
+        limit.limitRouter = address(0);
+        IPendleRouter(pendleRouter).addLiquiditySingleSy(address(this), address(asset), rewardBalance, 0, routerParams, limit);
     }
 
     function _balanceAsset() internal view returns (uint256) {
@@ -153,6 +163,10 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         return ERC20(PENDLE).balanceOf(address(this));
     }
 
+    function _isExpired() internal view returns (bool) {
+        return IPendleMarket(address(asset)).isExpired();
+    }
+
     /*//////////////////////////////////////////////////////////////
                 EXTERNAL:
     //////////////////////////////////////////////////////////////*/
@@ -163,6 +177,18 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
 
     function balanceStaked() external view returns (uint256) {
         return _balanceStaked();
+    }
+
+    function isExpired() external view returns (bool) {
+        return _isExpired();
+    }
+
+    /**
+     * @notice Set wether or not to unwrap the targetToken before depositing into SY. This enables direct payable deposits. Defaults to false.
+     * @param _unwrapTargetTokenToSY Wether or not to deactivate the autocompounding of the strategy.
+     */
+    function setUnwrapTargetTokenToSY(bool _unwrapTargetTokenToSY) external onlyManagement {
+        unwrapTargetTokenToSY = _unwrapTargetTokenToSY;
     }
 
     /**
@@ -282,4 +308,6 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         require(msg.sender == GOV, "!gov");
         _;
     }
+
+    receive() external payable {}
 }

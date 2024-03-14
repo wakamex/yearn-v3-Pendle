@@ -57,6 +57,8 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
+    bool public forceProfit = false; //to be used with minimum deposit contracts
+
     // Fuzz from $0.01 of 1e6 stable coins up to 1 billion of a 1e18 coin
     uint256 public maxFuzzAmount = 1e27;
     uint256 public minFuzzAmount = 5_00e15;

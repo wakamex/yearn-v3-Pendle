@@ -8,21 +8,18 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationSTETHTest is OperationTest {
+contract ETHOperationSWETHunwrapTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-stETH-25DEC25/SY-stETH Market --> asset
-        asset = ERC20(0xC374f7eC85F8C7DE3207a10bB1978bA104bdA3B2); //PT-stETH-25DEC25/SY-stETH Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-swETH-26DEC24/SY-swETH Market --> asset
+        asset = ERC20(0x0e1C5509B503358eA1Dac119C1D413e28Cc4b303); //PT-swETH-26DEC24/SY-swETH Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 100;
-
-        //PENDLE -3000-> WETH -500-> USDC -500-> crvUSD
-
+        feeBaseToTargetToken = 500;
 
         //ARB rewards:
         //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
@@ -49,7 +46,10 @@ contract ETHOperationSTETHTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), pendleStaking, PENDLE, feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, GOV, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
+
+        vm.prank(management);
+        strategy.setUnwrapTargetTokenToSY(true);
+
         // reward:
         if (additionalReward1 != address(0)) {
             vm.prank(management);

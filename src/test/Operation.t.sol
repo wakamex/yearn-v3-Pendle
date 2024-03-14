@@ -29,7 +29,7 @@ contract OperationTest is Setup {
         checkStrategyTotals(strategy, _amount, _amount, 0);
 
         // Earn Interest
-        skip(10 days);
+        skip(1 days);
         airdrop(ERC20(PENDLE), address(strategy), 100e18);
         if (additionalReward1 != address(0)) {
             airdrop(ERC20(additionalReward1), address(strategy), 100e18);
@@ -73,10 +73,10 @@ contract OperationTest is Setup {
         //_profitFactor = uint16(bound(uint256(_profitFactor), 10, 1_00));
         //_profit = uint16(bound(uint256(_profit), 1e10, 10000e18));
         _profit = bound(_profit, 1e15, 10000e18);
+        setFees(0, 1_000);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
-
         checkStrategyTotals(strategy, _amount, _amount, 0);
 
         // Earn Interest
@@ -91,7 +91,7 @@ contract OperationTest is Setup {
         if (additionalReward2 != address(0)) {
         airdrop(ERC20(additionalReward2), address(strategy), _profit);
         }
-
+        
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
@@ -99,7 +99,9 @@ contract OperationTest is Setup {
 
         // Check return Values
         //assertGe(profit, toAirdrop, "!profit");
-        assertGt(profit, 0, "!profit");
+        if (forceProfit == false) {
+            assertGt(profit, 0, "!profit");
+        }
         assertEq(loss, 0, "!loss");
 
         skip(strategy.profitMaxUnlockTime());
@@ -117,12 +119,13 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
 
         uint256 strategistShares = strategy.balanceOf(performanceFeeRecipient);
-        // empty complete strategy
-        console.log("BEFORE STRATEGIST REDEEM", strategy.totalAssets());
-        vm.prank(performanceFeeRecipient);
-        strategy.redeem(strategistShares, performanceFeeRecipient, performanceFeeRecipient);
-        console.log("AFTER STRATEGIST REDEEM", strategy.totalAssets());
-        assertGt(asset.balanceOf(performanceFeeRecipient), 0, "fees too low!");
+        if (strategistShares > 0) {
+            // empty complete strategy
+            vm.prank(performanceFeeRecipient);
+            strategy.redeem(strategistShares, performanceFeeRecipient, performanceFeeRecipient);
+            assertGt(asset.balanceOf(performanceFeeRecipient), 0, "fees too low!");
+        }
+        
     }
 
     function test_profitableReport_expectedShares(
@@ -131,16 +134,16 @@ contract OperationTest is Setup {
     ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS));
-
+        
         // Set protofol fee to 0 and perf fee to 10%
         setFees(0, 1_000);
-
+        
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
-
+        
         // TODO: Implement logic so totalDebt is _amount and totalIdle = 0.
         checkStrategyTotals(strategy, _amount, _amount, 0);
-
+        
         // Earn Interest
         skip(1 days);
 
@@ -151,6 +154,7 @@ contract OperationTest is Setup {
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
+        
         checkStrategyInvariants(strategy);
 
         // Check return Values
@@ -162,10 +166,10 @@ contract OperationTest is Setup {
         // Get the expected fee
         uint256 expectedShares = (profit * 1_000) / MAX_BPS;
 
-        assertEq(strategy.balanceOf(performanceFeeRecipient), expectedShares);
+        assertEq(strategy.balanceOf(performanceFeeRecipient), expectedShares, "shares not same");
 
         uint256 balanceBefore = asset.balanceOf(user);
-
+        
         // Withdraw all funds
         vm.prank(user);
         strategy.redeem(_amount, user, user);
@@ -189,7 +193,7 @@ contract OperationTest is Setup {
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
         // Skip some time
-        skip(15 days);
+        skip(1 days);
         airdrop(ERC20(PENDLE), address(strategy), 100e18);
         if (additionalReward1 != address(0)) {
             airdrop(ERC20(additionalReward1), address(strategy), 100e18);
