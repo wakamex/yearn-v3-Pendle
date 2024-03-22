@@ -9,10 +9,10 @@ size  :; forge build --sizes
 inspect :; forge inspect ${contract} storage-layout --pretty
 
 # mainnet:
-test  :; forge test -vv
-trace  :; forge test -vvv
+test  :; forge test -vv --evm-version shanghai
+trace  :; forge test -vvv --evm-version shanghai
 gas  :; forge test --gas-report
-test-contract  :; forge test -vv --match-contract $(contract)
+test-contract  :; forge test -vv --match-contract $(contract) --evm-version shanghai
 test-contract-gas  :; forge test --gas-report --match-contract ${contract}
 trace-contract  :; forge test -vvv --match-contract $(contract)
 test-test  :; forge test -vv --match-test $(test)

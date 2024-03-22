@@ -14,12 +14,13 @@ import {IPendleRouter} from "./interfaces/IPendleRouter.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 
 import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
+import {TradeFactorySwapper} from "@periphery/swappers/TradeFactorySwapper.sol";
 import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
 
 /// @title yearn-v3-Pendle
 /// @author mil0x
 /// @notice yearn-v3 Strategy that autocompounds Pendle LP positions.
-contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper {
+contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySwapper, AuctionSwapper {
     using SafeERC20 for ERC20;
 
     // Bool to keep autocompounding the strategy. Defaults to true. Set this to false to deactivate the strategy completely after a shutdown & emergencyWithdraw to leave everything withdrawable in asset.
@@ -28,10 +29,11 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
     // Bool to set wether or not to unwrap the targetToken before depositing into SY. This enables direct payable deposits. Defaults to false.
     bool public unwrapTargetTokenToSY;
 
+    // If rewards should be sold through TradeFactory.
+    bool public useTradeFactory;
+
     // If rewards should be sold through Auctions.
     bool public useAuction;
-
-    address[] public rewards;
 
     // Mapping to be set by management for any reward tokens.
     // This can be used to set different mins for different tokens
@@ -48,8 +50,6 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
     address internal immutable PENDLE;
 
     address public immutable SY;
-    address public immutable PT;
-    address public immutable YT;
     address public immutable targetToken;
     address public immutable GOV; //yearn governance
 
@@ -62,7 +62,7 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         routerParams.maxIteration = 256;
         routerParams.eps = 1e15; // max 0.1% unused
 
-        (SY, PT, YT) = IPendleMarket(_asset).readTokens();
+        (SY, , ) = IPendleMarket(_asset).readTokens();
         targetToken = _targetToken;
         pendleStaking = _pendleStaking;
         marketDepositHelper = IPendleStaking(pendleStaking).marketDepositHelper();
@@ -71,9 +71,7 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         GOV = _GOV;
 
         // Set uni swapper values
-        minAmountToSell = 0; // We will use the minAmountToSell mapping instead.
         base = _base;
-        router = 0xE592427A0AEce92De3Edee1F18E0157C05861564; //universal uniswapv3 router
         _setUniFees(PENDLE, base, _feePENDLEtoBase);
         _setUniFees(_base, _targetToken, _feeBaseToTargetToken);
 
@@ -108,34 +106,46 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
         _totalAssets = _balanceAsset() + _balanceStaked();
     }
 
-    function _claimAndSellRewards() internal {
-        //Claim rewards
+    function _claimRewards() internal override {
         address[] memory stakingTokens = new address[](1);
         stakingTokens[0] = address(asset);
         IMasterPenpie(masterPenpie).multiclaim(stakingTokens);
+    }
 
-        // If using the Auction contract we are done. If the maturity of the Pendle LP is reached, we cannot compound anymore.
-        if (useAuction || _isExpired()) return;
+    function _claimAndSellRewards() internal {
+        _claimRewards();
+        uint256 rewardBalance;
 
-        //PENDLE --> targetToken
-        uint256 rewardBalance = _balancePENDLE();
-        _swapFrom(PENDLE, targetToken, rewardBalance, 0);
+        // If both tradeFactory and Auction are not being used, we sell rewards here:
+        if (!useTradeFactory && !useAuction) {
+            //PENDLE --> targetToken
+            rewardBalance = _balancePENDLE();
+            if (rewardBalance > minAmountToSellMapping[PENDLE]) {
+                _swapFrom(PENDLE, targetToken, rewardBalance, 0);
+            }
 
-        //Other rewards --> targetToken
-        uint256 rewardsLength = rewards.length;
-        if (rewardsLength > 0) {
-            address currentReward;
-            for (uint256 i; i < rewardsLength; ++i) {
-                currentReward = rewards[i];
-                rewardBalance = ERC20(currentReward).balanceOf(address(this));
-                _swapFrom(currentReward, targetToken, rewardBalance, 0);
+            //Other rewards --> targetToken
+            address[] memory _rewardTokens = rewardTokens();
+            uint256 rewardsLength = _rewardTokens.length;
+            if (rewardsLength > 0) {
+                address currentReward;
+                for (uint256 i; i < rewardsLength; ++i) {
+                    currentReward = _rewardTokens[i];
+                    rewardBalance = ERC20(currentReward).balanceOf(address(this));
+                    if (rewardBalance > minAmountToSellMapping[currentReward]) {
+                        _swapFrom(currentReward, targetToken, rewardBalance, 0);
+                    }
+                }
             }
         }
 
+        // If the maturity of the Pendle LP is reached, we cannot compound anymore.
+        if (_isExpired()) return;
+
+        //Create asset from targetToken:
         //targetToken --> SY
         rewardBalance = ERC20(targetToken).balanceOf(address(this));
-        if (rewardBalance == 0) return;
-        if (rewardBalance < minAmountToSellMapping[targetToken]) return; //set minAmountToSell for targetToken in case of deposit minimum in SY
+        if (rewardBalance <= minAmountToSellMapping[targetToken]) return; //set minAmountToSell for targetToken in case of deposit minimum in SY
         address _targetToken = targetToken;
         uint256 payableBalance;
         if (unwrapTargetTokenToSY) { //for pools that require unwrapped gas as SY deposit asset
@@ -143,7 +153,9 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
             _targetToken = 0x0000000000000000000000000000000000000000; //unwrapped
             payableBalance = rewardBalance;
         }
-        rewardBalance = ISY(SY).deposit{value: payableBalance}(address(this), _targetToken, rewardBalance, 0);
+        ISY(SY).deposit{value: payableBalance}(address(this), _targetToken, rewardBalance, 0);
+        rewardBalance = ERC20(SY).balanceOf(address(this));
+
         //SY --> asset
         if (rewardBalance == 0) return;
         IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
@@ -200,23 +212,50 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
     }
 
     /**
-     * @notice Add a reward address that will be sold to autocompound the LP.
-     * @param _rewardToken address of the reward token to be sold.
-     * @param _feeRewardTokenToBase fee tier between rewardToken and base (0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000).
+     * @notice Set wether to use the trade factory contract address.
+     * @param _useTradeFactory wether to use the trade factory or not.
      */
-    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase) external onlyManagement {
-        _setUniFees(_rewardToken, base, _feeRewardTokenToBase);
-        require(_rewardToken != address(asset));
-        rewards.push(_rewardToken);
+    function setUseTradeFactory(bool _useTradeFactory) external onlyManagement {
+        require(tradeFactory() != address(0));
+        useTradeFactory = _useTradeFactory;
     }
 
     /**
-     * @notice Remove a reward by its index in the reward array to stop it being autocompounded to the LP.
-     * @param _rewardIndex index inside the reward array for the reward to remove.
+     * @notice Remove all the permissions of the tradeFactory and set its address to zero.
      */
-    function removeRewardByIndex(uint256 _rewardIndex) external onlyManagement {
-        rewards[_rewardIndex] = rewards[rewards.length - 1];
-        rewards.pop();
+    function removeTradeFactory() external onlyManagement {
+        require(tradeFactory() != address(0));
+        _removeTradeFactoryPermissions();
+        useTradeFactory = false;
+    }
+
+    /**
+     * @notice Add a reward address that will be sold to autocompound the LP.
+     * @param _rewardToken address of the reward token to be sold.
+     * @param _feeRewardTokenToBase automatic swapping fee tier between rewardToken and base (0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000).
+     * @param _swapToTargetToken wether to let the tradeFactory swap rewards to targetToken or to asset. (true = targetToken, false = asset)
+     */
+    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase, bool _swapToTargetToken) external onlyManagement {
+        _setUniFees(_rewardToken, base, _feeRewardTokenToBase);
+        require(_rewardToken != address(asset));
+        if (_swapToTargetToken) {
+            _addToken(_rewardToken, targetToken);
+        } else {
+            _addToken(_rewardToken, address(asset));
+        }
+    }
+
+    /**
+     * @notice Remove a reward token to stop it being autocompounded to the LP.
+     * @param _rewardToken address of the reward token to be removed.
+     * @param _swapToTargetToken wether to stop allowing the tradeFactory to swap the reward to targetToken or to asset. (true = targetToken, false = asset)
+     */
+    function removeReward(address _rewardToken, bool _swapToTargetToken) external onlyManagement {
+        if (_swapToTargetToken) {
+            _removeToken(_rewardToken, targetToken);
+        } else {
+            _removeToken(_rewardToken, address(asset));
+        }
     }
 
     /**
@@ -240,8 +279,8 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
      * @notice Set the `minAmountToSellMapping` for a specific `_token`.
      * @dev This can be used by management to adjust wether or not the
      * _claimAndSellRewards() function will attempt to sell a specific
-     * reward token. This can be used if liquidity is to low, amounts
-     * are to low or any other reason that may cause reverts.
+     * reward token. This can be used if liquidity is too low, amounts
+     * are too low or any other reason that may cause reverts.
      *
      * @param _token The address of the token to adjust.
      * @param _amount Min required amount to sell.
@@ -270,7 +309,8 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
     ///////////// DUTCH AUCTION FUNCTIONS \\\\\\\\\\\\\\\\\\
     function setAuction(address _auction) external onlyEmergencyAuthorized {
         if (_auction != address(0)) {
-            require(Auction(_auction).want() == address(asset), "wrong want");
+            address want = Auction(_auction).want();
+            require(want == targetToken || want == address(asset), "wrong want");
         }
         auction = _auction;
     }
@@ -295,6 +335,21 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, AuctionSwapper
     function _emergencyWithdraw(uint256 _amount) internal override {
         uint256 stakedBalance = _balanceStaked();
         _freeFunds(Math.min(stakedBalance, _amount));
+    }
+
+    /**
+     * @notice Set the trade factory contract address.
+     * @dev For disabling set address(0).
+     * @param _tradeFactory The address of the trade factory contract.
+     * @param _swapToTargetToken wether to let the tradeFactory swap rewards to targetToken or to asset. (true = targetToken, false = asset)
+     */
+    function setTradeFactory(address _tradeFactory, bool _swapToTargetToken, bool _useTradeFactory) external onlyGovernance {
+        if (_swapToTargetToken) {
+            _setTradeFactory(_tradeFactory, targetToken);
+        } else {
+            _setTradeFactory(_tradeFactory, address(asset));
+        }
+        useTradeFactory = _useTradeFactory;
     }
 
     /// @notice Sweep of non-asset ERC20 tokens to governance (onlyGovernance)

@@ -43,20 +43,20 @@ contract ETHOperationETHxTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), pendleStaking, PENDLE, feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, GOV, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         
         // reward:
         if (additionalReward1 != address(0)) {
             vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
+            strategy.addReward(additionalReward1, feeAdditionalReward1toBase, true);
         }
 
         // reward:
         if (additionalReward2 != address(0)) {
             vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
+            strategy.addReward(additionalReward2, feeAdditionalReward2toBase, true);
         }
 
         // label all the used addresses for traces

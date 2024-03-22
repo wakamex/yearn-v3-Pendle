@@ -11,16 +11,27 @@ contract PendleLPCompounderFactory {
     address public performanceFeeRecipient;
     address public keeper;
 
+    address internal immutable pendleStaking;
+    address internal immutable PENDLE;
+    address internal immutable GOV;
+
+
     mapping(address => address) public assetToStrategy;
 
     constructor(
         address _management,
         address _peformanceFeeRecipient,
-        address _keeper
+        address _keeper, 
+        address _pendleStaking,
+        address _PENDLE,
+        address _GOV
     ) {
         management = _management;
         performanceFeeRecipient = _peformanceFeeRecipient;
         keeper = _keeper;
+        pendleStaking = _pendleStaking;
+        PENDLE = _PENDLE;
+        GOV = _GOV;
     }
 
     modifier onlyManagement() {
@@ -34,17 +45,14 @@ contract PendleLPCompounderFactory {
      */
     function newPendleLPCompounder(
         address _asset,
-        address _pendleStaking, 
-        address _PENDLE, 
         uint24 _feePENDLEtoBase, 
         address _base, 
         uint24 _feeBaseToTargetToken, 
-        address _targetToken, 
-        address _GOV, 
+        address _targetToken,
         string memory _name
     ) external onlyManagement returns (address) {
 
-        IStrategyInterface newStrategy = IStrategyInterface(address(new PendleLPCompounder(_asset, _pendleStaking, _PENDLE, _feePENDLEtoBase, _base, _feeBaseToTargetToken, _targetToken, _GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(address(new PendleLPCompounder(_asset, pendleStaking, PENDLE, _feePENDLEtoBase, _base, _feeBaseToTargetToken, _targetToken, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
