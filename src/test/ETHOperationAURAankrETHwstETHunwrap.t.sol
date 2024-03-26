@@ -18,6 +18,7 @@ contract ETHOperationAURAankrETHwstETHunwrapTest is OperationTest {
         asset = ERC20(0xD547d9C74314F787aFFc587d101146e1663d046e); //PT-ankrETH-wstETH-27JUN24/SY-ankrETH-wstETH Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        unwrapTargetTokenToSY = true;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
@@ -46,9 +47,6 @@ contract ETHOperationAURAankrETHwstETHunwrapTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
-        vm.prank(management);
-        strategy.setUnwrapTargetTokenToSY(true);
 
         // reward:
         if (additionalReward1 != address(0)) {

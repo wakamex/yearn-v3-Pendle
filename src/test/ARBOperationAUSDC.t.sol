@@ -18,6 +18,7 @@ contract ARBOperationAUSDCTest is OperationTest {
         asset = ERC20(0x8621c587059357d6C669f72dA3Bfe1398fc0D0B5); //PT-aUSDC-27JUN24/SY-aUSDC Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //USDC
+        unwrapTargetTokenToSY = false;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 

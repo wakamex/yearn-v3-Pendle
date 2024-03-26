@@ -25,8 +25,8 @@ contract ARBOperationRSETHTest is OperationTest {
         feeAdditionalReward1toBase = 500;
 
         //PNP rewards:
-        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
-        feeAdditionalReward2toBase = 10000;
+        //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+        //feeAdditionalReward2toBase = 10000;
         
         //chain specific:
         base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;

@@ -20,6 +20,7 @@ contract ETHOperationRSWETHunwrapTest is OperationTest {
         asset = ERC20(0x1729981345aa5CaCdc19eA9eeffea90cF1c6e28b); //PT-rswETH-27JUN24 /SY-rswETH Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        unwrapTargetTokenToSY = true;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
@@ -48,9 +49,6 @@ contract ETHOperationRSWETHunwrapTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
-        vm.prank(management);
-        strategy.setUnwrapTargetTokenToSY(true);
 
         vm.prank(management);
         strategy.setMinAmountToSellMapping(targetToken, 100000000000000);

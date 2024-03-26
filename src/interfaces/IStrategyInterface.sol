@@ -17,7 +17,8 @@ interface IStrategyInterface is IStrategy {
     function addReward(address _rewardToken, uint24 _feeRewardTokenToBase, bool _swapToTargetToken) external;
     function setProfitLimitRatio(uint256) external;
     function setAutocompound(bool) external;
-    function setUnwrapTargetTokenToSY(bool) external;
     function setMinAmountToSellMapping(address, uint256) external;
     function setRouterParams(uint256 _guessMin, uint256 _guessMax, uint256 _maxIteration, uint256 _eps) external;
+
+    function isExpired() external view returns (bool);
 }

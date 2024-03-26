@@ -33,6 +33,7 @@ contract Setup is ExtendedTest, IEvents {
     address base; 
     uint24 feeBaseToTargetToken; 
     address targetToken;
+    bool public unwrapTargetTokenToSY;
     address public GOV;
     address public additionalReward1;
     uint24 feeAdditionalReward1toBase;
@@ -160,6 +161,7 @@ contract Setup is ExtendedTest, IEvents {
                     keeper,
                     pendleStaking,
                     PENDLE,
+                    GOV,
                     GOV
                 )
             )

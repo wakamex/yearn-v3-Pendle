@@ -18,6 +18,7 @@ contract ETHOperationSWETHunwrapTest is OperationTest {
         asset = ERC20(0x0e1C5509B503358eA1Dac119C1D413e28Cc4b303); //PT-swETH-26DEC24/SY-swETH Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        unwrapTargetTokenToSY = true;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
@@ -46,9 +47,6 @@ contract ETHOperationSWETHunwrapTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
-        vm.prank(management);
-        strategy.setUnwrapTargetTokenToSY(true);
 
         // reward:
         if (additionalReward1 != address(0)) {

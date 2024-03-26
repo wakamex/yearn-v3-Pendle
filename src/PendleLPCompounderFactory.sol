@@ -13,6 +13,7 @@ contract PendleLPCompounderFactory {
 
     address internal immutable pendleStaking;
     address internal immutable PENDLE;
+    address internal immutable emergencyAdmin;
     address internal immutable GOV;
 
 
@@ -24,6 +25,7 @@ contract PendleLPCompounderFactory {
         address _keeper, 
         address _pendleStaking,
         address _PENDLE,
+        address _emergencyAdmin,
         address _GOV
     ) {
         management = _management;
@@ -31,6 +33,7 @@ contract PendleLPCompounderFactory {
         keeper = _keeper;
         pendleStaking = _pendleStaking;
         PENDLE = _PENDLE;
+        emergencyAdmin = _emergencyAdmin;
         GOV = _GOV;
     }
 
@@ -59,6 +62,8 @@ contract PendleLPCompounderFactory {
         newStrategy.setKeeper(keeper);
 
         newStrategy.setPendingManagement(management);
+
+        newStrategy.setEmergencyAdmin(emergencyAdmin);
 
         emit NewPendleLPCompounder(address(newStrategy), _asset);
 

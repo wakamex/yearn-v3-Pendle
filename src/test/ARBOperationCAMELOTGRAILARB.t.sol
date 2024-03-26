@@ -16,6 +16,7 @@ contract ARBOperationCAMELOTGRAILARBTest is OperationTest {
 
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-Camelot-GRAIL-ARB-27JUN24/SY-Camelot-GRAIL-ARB Market --> asset
         asset = ERC20(0x6EA328bf810ef0F0bD1291Eb52f1529aA073cEfa); //PT-Camelot-GRAIL-ARB-27JUN24/SY-Camelot-GRAIL-ARB Market
+        unwrapTargetTokenToSY = false;
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0x912CE59144191C1204E64559FE8253a0e49E6548; //ARB
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)

@@ -20,6 +20,7 @@ contract ETHOperationETHXunwrapTest is OperationTest {
         asset = ERC20(0xFf262396f2A35Cd7Aa24b7255E7d3f45f057Cdba); //PT-ETHx-26DEC24/SY-ETHx Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        unwrapTargetTokenToSY = true;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
@@ -48,9 +49,6 @@ contract ETHOperationETHXunwrapTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
-        vm.prank(management);
-        strategy.setUnwrapTargetTokenToSY(true);
 
         vm.prank(management);
         strategy.setMinAmountToSellMapping(targetToken, 100000000000000);
