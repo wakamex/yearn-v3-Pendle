@@ -14,7 +14,7 @@ interface IStrategyInterface is IStrategy {
     function balanceAsset() external view returns (uint256);
     function balanceStaked() external view returns (uint256);
 
-    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase, bool _swapToTargetToken) external;
+    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase) external;
     function setProfitLimitRatio(uint256) external;
     function setAutocompound(bool) external;
     function setMinAmountToSellMapping(address, uint256) external;

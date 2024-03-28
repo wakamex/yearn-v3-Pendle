@@ -17,6 +17,8 @@ import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
 import {TradeFactorySwapper} from "@periphery/swappers/TradeFactorySwapper.sol";
 import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
 
+import {ITradeFactory} from "./interfaces/ITradeFactory.sol";
+
 /// @title yearn-v3-Pendle
 /// @author mil0x
 /// @notice yearn-v3 Strategy that autocompounds Pendle LP positions.
@@ -233,28 +235,24 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
      * @notice Add a reward address that will be sold to autocompound the LP.
      * @param _rewardToken address of the reward token to be sold.
      * @param _feeRewardTokenToBase automatic swapping fee tier between rewardToken and base (0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000).
-     * @param _swapToTargetToken wether to let the tradeFactory swap rewards to targetToken or to asset. (true = targetToken, false = asset)
      */
-    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase, bool _swapToTargetToken) external onlyManagement {
+    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase) external onlyManagement {
         require(_rewardToken != address(asset));
         _setUniFees(_rewardToken, base, _feeRewardTokenToBase);
-        if (_swapToTargetToken) {
+        _addToken(_rewardToken, address(asset));
+        if (targetToken != address(asset)) {
             _addToken(_rewardToken, targetToken);
-        } else {
-            _addToken(_rewardToken, address(asset));
         }
     }
 
     /**
      * @notice Remove a reward token to stop it being autocompounded to the LP.
      * @param _rewardToken address of the reward token to be removed.
-     * @param _swapToTargetToken wether to stop allowing the tradeFactory to swap the reward to targetToken or to asset. (true = targetToken, false = asset)
      */
-    function removeReward(address _rewardToken, bool _swapToTargetToken) external onlyManagement {
-        if (_swapToTargetToken) {
+    function removeReward(address _rewardToken) external onlyManagement {
+        _removeToken(_rewardToken, address(asset));
+        if (targetToken != address(asset)) {
             _removeToken(_rewardToken, targetToken);
-        } else {
-            _removeToken(_rewardToken, address(asset));
         }
     }
 
@@ -339,15 +337,19 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
 
     /**
      * @notice Set the trade factory contract address.
-     * @dev For disabling set address(0).
+     * @dev For disabling, call removeTradeFactory.
      * @param _tradeFactory The address of the trade factory contract.
-     * @param _swapToTargetToken wether to let the tradeFactory swap rewards to targetToken or to asset. (true = targetToken, false = asset)
      */
-    function setTradeFactory(address _tradeFactory, bool _swapToTargetToken, bool _useTradeFactory) external onlyGovernance {
-        if (_swapToTargetToken) {
-            _setTradeFactory(_tradeFactory, targetToken);
-        } else {
-            _setTradeFactory(_tradeFactory, address(asset));
+    function setTradeFactory(address _tradeFactory, bool _useTradeFactory) external onlyGovernance {
+        _setTradeFactory(_tradeFactory, address(asset));
+        if (targetToken != address(asset)) { //enable tradeFactory also for targetToken for all rewardTokens 
+            address[] memory _rewardTokensLocal = rewardTokens();
+            uint256 rewardsLength = _rewardTokensLocal.length;
+            for (uint256 i; i < rewardsLength; ++i) {
+                address reward = _rewardTokensLocal[i];
+                ERC20(reward).safeApprove(_tradeFactory, type(uint256).max);
+                ITradeFactory(_tradeFactory).enable(reward, targetToken);
+            }
         }
         useTradeFactory = _useTradeFactory;
     }

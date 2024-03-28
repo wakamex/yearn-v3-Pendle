@@ -51,13 +51,13 @@ contract ETHOperationAURAankrETHwstETHunwrapTest is OperationTest {
         // reward:
         if (additionalReward1 != address(0)) {
             vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase, true);
+            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
         }
 
         // reward:
         if (additionalReward2 != address(0)) {
             vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase, true);
+            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
         }
 
         // label all the used addresses for traces
