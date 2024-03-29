@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
 
-import {BaseHealthCheck} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {BaseHealthCheck, ERC20} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IPendleMarket} from "./interfaces/IPendleMarket.sol";
 import {IPendleStaking, IMarketDepositHelper} from "./interfaces/IPendleStaking.sol";
@@ -14,10 +12,8 @@ import {IPendleRouter} from "./interfaces/IPendleRouter.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 
 import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
-import {TradeFactorySwapper} from "@periphery/swappers/TradeFactorySwapper.sol";
+import {TradeFactorySwapper, ITradeFactory} from "@periphery/swappers/TradeFactorySwapper.sol";
 import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
-
-import {ITradeFactory} from "./interfaces/ITradeFactory.sol";
 
 /// @title yearn-v3-Pendle
 /// @author mil0x
@@ -336,7 +332,10 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
 
     function _emergencyWithdraw(uint256 _amount) internal override {
         uint256 stakedBalance = _balanceStaked();
-        _freeFunds(Math.min(stakedBalance, _amount));
+        if (_amount > stakedBalance) {
+            _amount = stakedBalance;
+        }
+        _freeFunds(_amount);
     }
 
     /**
