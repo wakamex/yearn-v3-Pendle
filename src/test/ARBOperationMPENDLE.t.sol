@@ -8,29 +8,29 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationGLPTest is OperationTest {
+contract ARBOperationMPENDLETest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-GLP-28JUN24/SY-GLP Market --> asset
-        asset = ERC20(0x551c423c441db0B691b5630F04d2080Caee25963); //PT-GLP-28JUN24/SY-GLP Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-mPENDLE-26SEP24/SY-mPENDLE Market --> asset
+        asset = ERC20(0xf617792eA9Dceb2208F4C440258B21d2f3FdB9A3); //PT-mPENDLE-26SEP24/SY-mPENDLE Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
+        targetToken = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8; //PENDLE
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
         //ARB rewards:
-        additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
-        feeAdditionalReward1toBase = 500;
+        //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+        //feeAdditionalReward1toBase = 500;
 
-        //PNP rewards:
-        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+        //MPENDLE rewards:
+        additionalReward2 = 0xB688BA096b7Bb75d7841e47163Cd12D18B36A5bF;
         feeAdditionalReward2toBase = 10000;
         
         //chain specific:
-        base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        base = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
         PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
         feePENDLEtoBase = 3000;
 

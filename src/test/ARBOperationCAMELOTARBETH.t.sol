@@ -8,16 +8,16 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationGLPTest is OperationTest {
+contract ARBOperationCAMELOTARBETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-GLP-28JUN24/SY-GLP Market --> asset
-        asset = ERC20(0x551c423c441db0B691b5630F04d2080Caee25963); //PT-GLP-28JUN24/SY-GLP Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> SY-ARB-ETH_Camelot Token exp.27 Jun 2024 Market --> asset
+        asset = ERC20(0x3803D89c31dE8B7DEf55C86f2469A5ea4Db41B92); //
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
+        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //wETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 

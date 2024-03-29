@@ -8,18 +8,17 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationGLPTest is OperationTest {
+contract ARBOperationSETHPTeETHSiloPoolTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-GLP-28JUN24/SY-GLP Market --> asset
-        asset = ERC20(0x551c423c441db0B691b5630F04d2080Caee25963); //PT-GLP-28JUN24/SY-GLP Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> EXP. 25 Apr 2024  Market --> asset
+        asset = ERC20(0x99e9028e274FEAFA2E1D8787E1eE6DE39C6F7724); //SY sETH-pteETHSilo (SY-sETH-p...)
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
-        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 500;
+        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //wETH
+        feeBaseToTargetToken = 100;
 
         //ARB rewards:
         additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;

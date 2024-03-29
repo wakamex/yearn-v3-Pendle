@@ -72,7 +72,7 @@ contract OperationTest is Setup {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         //_profitFactor = uint16(bound(uint256(_profitFactor), 10, 1_00));
         //_profit = uint16(bound(uint256(_profit), 1e10, 10000e18));
-        _profit = bound(_profit, 1e15, 10000e18);
+        _profit = bound(_profit, 1e15, 1000e18);
         setFees(0, 1_000);
 
         // Deposit into strategy

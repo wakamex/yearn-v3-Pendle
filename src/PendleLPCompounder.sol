@@ -128,9 +128,11 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
         // If both tradeFactory and Auction are not being used, we sell rewards here:
         if (!useTradeFactory && !useAuction) {
             //PENDLE --> targetToken
-            rewardBalance = _balancePENDLE();
-            if (rewardBalance > minAmountToSellMapping[PENDLE]) {
-                _swapFrom(PENDLE, targetToken, rewardBalance, 0);
+            if (PENDLE != targetToken) {
+                rewardBalance = _balancePENDLE();
+                if (rewardBalance > minAmountToSellMapping[PENDLE]) {
+                    _swapFrom(PENDLE, targetToken, rewardBalance, 0);
+                }
             }
 
             //Other rewards --> targetToken
@@ -140,9 +142,11 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
                 address currentReward;
                 for (uint256 i; i < rewardsLength; ++i) {
                     currentReward = _rewardTokens[i];
-                    rewardBalance = ERC20(currentReward).balanceOf(address(this));
-                    if (rewardBalance > minAmountToSellMapping[currentReward]) {
-                        _swapFrom(currentReward, targetToken, rewardBalance, 0);
+                    if (currentReward != targetToken) {
+                        rewardBalance = ERC20(currentReward).balanceOf(address(this));
+                        if (rewardBalance > minAmountToSellMapping[currentReward]) {
+                            _swapFrom(currentReward, targetToken, rewardBalance, 0);
+                        }
                     }
                 }
             }

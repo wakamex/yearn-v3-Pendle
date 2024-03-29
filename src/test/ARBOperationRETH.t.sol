@@ -8,26 +8,25 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationGLPTest is OperationTest {
+contract ARBOperationRETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-GLP-28JUN24/SY-GLP Market --> asset
-        asset = ERC20(0x551c423c441db0B691b5630F04d2080Caee25963); //PT-GLP-28JUN24/SY-GLP Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-rETH-26JUN25/SY-rETH Market Token  --> asset
+        asset = ERC20(0x14FbC760eFaF36781cB0eb3Cb255aD976117B9Bd); //PT-rETH-26JUN25/SY-rETH Market Token 
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
-        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 500;
+        targetToken = 0xEC70Dcb4A1EFa46b8F2D97C310C9c4790ba5ffA8; //rETH
+        feeBaseToTargetToken = 100;
 
         //ARB rewards:
         additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
         feeAdditionalReward1toBase = 500;
 
         //PNP rewards:
-        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
-        feeAdditionalReward2toBase = 10000;
+        //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+        //feeAdditionalReward2toBase = 10000;
         
         //chain specific:
         base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -45,6 +44,9 @@ contract ARBOperationGLPTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
+
+        vm.prank(management);
+        strategy.setRouterParams(0, type(uint256).max, 256, 1e16);
         
         // reward:
         if (additionalReward1 != address(0)) {
