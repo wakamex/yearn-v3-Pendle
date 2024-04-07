@@ -20,7 +20,7 @@ contract ARBOperationCAMELOTPENDLEETHest is OperationTest {
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8; //PENDLE
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 500;
+        feeBaseToTargetToken = 3000;
 
         //ARB rewards:
         additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;

@@ -8,18 +8,18 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationsFRAXTest is OperationTest {
+contract ETHOperationFUSDCTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-sFRAX-28MAR24/SY-sFRAX Market --> asset
-        asset = ERC20(0x1806855b73881eD4E435c97C6Da58b01Be5D7390); //PT-sFRAX-28MAR24/SY-sFRAX Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/:
+        asset = ERC20(0xcB71c2A73fd7588E1599DF90b88de2316585A860);
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x853d955aCEf822Db058eb8505911ED77F175b99e; //FRAX
+        targetToken = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; //USDC
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 3000;
+        feeBaseToTargetToken = 500;
 
         //PENDLE -3000-> WETH -500-> USDC -500-> crvUSD
 
@@ -49,6 +49,9 @@ contract ETHOperationsFRAXTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
+
+        vm.prank(management);
+        strategy.setRouterParams(0, type(uint256).max, 256, 1e16);
         
         // reward:
         if (additionalReward1 != address(0)) {

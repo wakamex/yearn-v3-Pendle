@@ -22,4 +22,7 @@ interface IStrategyInterface is IStrategy {
     function setRouterParams(uint256 _guessMin, uint256 _guessMax, uint256 _maxIteration, uint256 _eps) external;
 
     function isExpired() external view returns (bool);
+
+    function setTradeFactory(address, bool) external;
+    function claimRewards() external;
 }

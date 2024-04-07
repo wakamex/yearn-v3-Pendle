@@ -19,18 +19,18 @@ contract ARBOperationMPENDLETest is OperationTest {
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8; //PENDLE
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 500;
+        feeBaseToTargetToken = 3000;
 
         //ARB rewards:
-        //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
-        //feeAdditionalReward1toBase = 500;
+        additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+        feeAdditionalReward1toBase = 500;
 
-        //MPENDLE rewards:
-        additionalReward2 = 0xB688BA096b7Bb75d7841e47163Cd12D18B36A5bF;
+        //PNP rewards:
+        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
         feeAdditionalReward2toBase = 10000;
         
         //chain specific:
-        base = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+        base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
         PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
         feePENDLEtoBase = 3000;
 

@@ -350,7 +350,6 @@ contract PendleLPCompounder is BaseHealthCheck, UniswapV3Swapper, TradeFactorySw
             uint256 rewardsLength = _rewardTokensLocal.length;
             for (uint256 i; i < rewardsLength; ++i) {
                 address reward = _rewardTokensLocal[i];
-                ERC20(reward).safeApprove(_tradeFactory, type(uint256).max);
                 ITradeFactory(_tradeFactory).enable(reward, targetToken);
             }
         }

@@ -18,7 +18,7 @@ contract ARBOperationRETHTest is OperationTest {
         asset = ERC20(0x14FbC760eFaF36781cB0eb3Cb255aD976117B9Bd); //PT-rETH-26JUN25/SY-rETH Market Token 
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
         targetToken = 0xEC70Dcb4A1EFa46b8F2D97C310C9c4790ba5ffA8; //rETH
-        feeBaseToTargetToken = 100;
+        feeBaseToTargetToken = 500;
 
         //ARB rewards:
         additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;

@@ -8,35 +8,39 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationAUSDCTest is OperationTest {
+contract ETHOperationUNIETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
-        uint256 arbitrumFork = vm.createFork("arbitrum");
-        vm.selectFork(arbitrumFork);
+        uint256 mainnetFork = vm.createFork("mainnet");
+        vm.selectFork(mainnetFork);
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-aUSDC-27JUN24/SY-aUSDC Market --> asset
-        asset = ERC20(0xBa4A858d664Ddb052158168DB04AFA3cFF5CFCC8); //PT-aUSDC-27JUN24/SY-aUSDC Market
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-rsETH-27JUN24 /SY-rsETH Market --> asset
+        asset = ERC20(0xbCE250b572955c044C0C4E75B2Fa8016c12cABF9); //PT-rsETH-27JUN24 /SY-rsETH Market
         //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //USDC
-        unwrapTargetTokenToSY = false;
+        //targetToken = 0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7; //rsETH
+        targetToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH --> unwrap
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeBaseToTargetToken = 500;
 
+        //PENDLE -3000-> WETH -500-> USDC -500-> crvUSD
+
+
         //ARB rewards:
-        additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
-        feeAdditionalReward1toBase = 500;
+        //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+        //feeAdditionalReward1toBase = 500;
 
         //PNP rewards:
-        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
-        feeAdditionalReward2toBase = 10000;
+        //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+        //feeAdditionalReward2toBase = 10000;
         
         //chain specific:
-        base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-        PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+        base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
+        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feePENDLEtoBase = 3000;
 
-        pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
-        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;  
+        pendleStaking = 0x6E799758CEE75DAe3d84e09D40dc416eCf713652; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
+        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;  
         
         // Set decimals
         decimals = asset.decimals();
@@ -47,8 +51,8 @@ contract ARBOperationAUSDCTest is OperationTest {
         setUpStrategy();
         factory = strategy.FACTORY();
 
-        vm.prank(management);
-        strategy.setRouterParams(0, type(uint256).max, 256, 1e16);
+        //vm.prank(management);
+        //strategy.setMinAmountToSellMapping(targetToken, 10000000000000);
         
         // reward:
         if (additionalReward1 != address(0)) {
@@ -61,6 +65,9 @@ contract ARBOperationAUSDCTest is OperationTest {
             vm.prank(management);
             strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
         }
+
+        vm.prank(management);
+        strategy.setMinAmountToSellMapping(0x0000000000000000000000000000000000000000, 100000000000000);
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");
