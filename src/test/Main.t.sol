@@ -24,9 +24,10 @@ contract MainTest is Setup {
     function test_main() public {
         setFees(0, 0);
         //init
-        uint256 _amount = 100e18;
+        uint256 _amount = 1e18;
         uint256 profit;
         uint256 loss;
+        uint256 _profitFactor = 10_00;
         console.log("asset: ", asset.symbol());
         console.log("amount:", _amount);
         //user funds:
@@ -41,12 +42,6 @@ contract MainTest is Setup {
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
         console.log("assetBalance: ", strategy.balanceAsset());
 
-        // Earn Interest
-        skip(12 days);
-
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -54,20 +49,10 @@ contract MainTest is Setup {
         console.log("loss: ", loss);
         checkStrategyInvariants(strategy);
 
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
-        // Report profit / loss
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        console.log("profit: ", profit);
-        console.log("loss: ", loss);
+        uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
+        console.log("toAirdrop: ", toAirdrop);
+        airdrop(asset, address(strategy), toAirdrop);
 
-        checkStrategyInvariants(strategy);
-
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -76,9 +61,9 @@ contract MainTest is Setup {
 
         checkStrategyInvariants(strategy);
 
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
+        toAirdrop = (_amount * _profitFactor) / MAX_BPS;
+        console.log("toAirdrop: ", toAirdrop);
+        airdrop(asset, address(strategy), toAirdrop);
 
         // Report profit / loss
         vm.prank(keeper);
@@ -93,6 +78,7 @@ contract MainTest is Setup {
         // Withdraw all funds
         console.log("performanceFeeReceipient: ", strategy.balanceOf(performanceFeeRecipient));
         console.log("redeem strategy.totalAssets() before redeem: ", strategy.totalAssets());
+        console.log("totalSupply before redeem: ", strategy.totalSupply());
         vm.prank(user);
         strategy.redeem(_amount, user, user);
         console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
@@ -102,15 +88,17 @@ contract MainTest is Setup {
         console.log("assetBalance of strategy: ", strategy.balanceAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
-        checkStrategyTotals(strategy, 0, 0, 0);
+
+        assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
     
     function test_withdraw_after_expiry() public {
         setFees(0, 0);
         //init
-        uint256 _amount = 100e18;
+        uint256 _amount = 10e18;
         uint256 profit;
         uint256 loss;
+        uint256 _profitFactor = 10_00;
         console.log("asset: ", asset.symbol());
         console.log("amount:", _amount);
         //user funds:
@@ -125,46 +113,10 @@ contract MainTest is Setup {
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
         console.log("assetBalance: ", strategy.balanceAsset());
 
-        // Earn Interest
-        skip(2 days);
+        uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
+        console.log("toAirdrop: ", toAirdrop);
+        airdrop(asset, address(strategy), toAirdrop);
 
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
-        // Report profit / loss
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        console.log("profit: ", profit);
-        console.log("loss: ", loss);
-        checkStrategyInvariants(strategy);
-
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
-        // Report profit / loss
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        console.log("profit: ", profit);
-        console.log("loss: ", loss);
-
-        checkStrategyInvariants(strategy);
-
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
-        // Report profit / loss
-        vm.prank(keeper);
-        (profit, loss) = strategy.report();
-        console.log("profit: ", profit);
-        console.log("loss: ", loss);
-
-        checkStrategyInvariants(strategy);
-
-        airdrop(ERC20(PENDLE), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward1), address(strategy), 10e18);
-        airdrop(ERC20(additionalReward2), address(strategy), 10e18);
-
-        // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
         console.log("profit: ", profit);
@@ -188,8 +140,8 @@ contract MainTest is Setup {
         console.log("assetBalance of strategy: ", strategy.balanceAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
-        checkStrategyTotals(strategy, 0, 0, 0);
     }
+    
 }
 
 

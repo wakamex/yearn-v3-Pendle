@@ -1,38 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
 
-import {PendleLPCompounder} from "./PendleLPCompounder.sol";
+import {SingleSidedPT} from "./SingleSidedPT.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
-contract PendleLPCompounderFactory {
-    event NewPendleLPCompounder(address indexed strategy, address indexed asset);
+contract SingleSidedPTFactory {
+    event NewSingleSidedPT(address indexed strategy, address indexed asset);
 
     address public management;
     address public performanceFeeRecipient;
     address public keeper;
 
-    address internal immutable pendleStaking;
-    address internal immutable PENDLE;
-    address internal immutable emergencyAdmin;
-    address internal immutable GOV;
+    address public  immutable oracle;
+    address public immutable emergencyAdmin;
+    address public immutable GOV;
 
-
-    mapping(address => address) public assetToStrategy;
+    mapping(address => address) public marketToStrategy;
 
     constructor(
         address _management,
         address _peformanceFeeRecipient,
         address _keeper, 
-        address _pendleStaking,
-        address _PENDLE,
+        address _oracle,
         address _emergencyAdmin,
         address _GOV
     ) {
         management = _management;
         performanceFeeRecipient = _peformanceFeeRecipient;
         keeper = _keeper;
-        pendleStaking = _pendleStaking;
-        PENDLE = _PENDLE;
+        oracle = _oracle;
         emergencyAdmin = _emergencyAdmin;
         GOV = _GOV;
     }
@@ -43,19 +39,12 @@ contract PendleLPCompounderFactory {
     }
 
     /**
-     * @notice Deploy a new Gamma Stable LP Compounder Strategy.
-     * @return . The address of the new lender.
+     * @notice Deploy a new Single Sided Pendle PT Strategy.
+     * @return . The address of the new strategy.
      */
-    function newPendleLPCompounder(
-        address _asset,
-        uint24 _feePENDLEtoBase, 
-        address _base, 
-        uint24 _feeBaseToTargetToken, 
-        address _targetToken,
-        string memory _name
-    ) external onlyManagement returns (address) {
+    function newSingleSidedPT(address _asset, address _market, address _redeemToken, uint24 _feeRedeemTokenToBase, address _base, uint24 _feeBaseToAsset, string memory _name) external onlyManagement returns (address) {
 
-        IStrategyInterface newStrategy = IStrategyInterface(address(new PendleLPCompounder(_asset, pendleStaking, PENDLE, _feePENDLEtoBase, _base, _feeBaseToTargetToken, _targetToken, GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPT(_asset, _market, _redeemToken, _feeRedeemTokenToBase, _base, _feeBaseToAsset, oracle, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -65,20 +54,20 @@ contract PendleLPCompounderFactory {
 
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
-        emit NewPendleLPCompounder(address(newStrategy), _asset);
+        emit NewSingleSidedPT(address(newStrategy), _asset);
 
-        assetToStrategy[_asset] = address(newStrategy);
+        marketToStrategy[_market] = address(newStrategy);
 
         return address(newStrategy);
     }
 
     /**
-     * @notice Retrieve the address of a strategy by LP address
-     * @param _asset LP address
+     * @notice Retrieve the address of a strategy by market address
+     * @param _market market address
      * @return strategy address
      */
-    function getStrategyByAsset(address _asset) external view returns (address) {
-        return assetToStrategy[_asset];
+    function getStrategyByAsset(address _market) external view returns (address) {
+        return marketToStrategy[_market];
     }
 
     /**
@@ -86,13 +75,13 @@ contract PendleLPCompounderFactory {
      * @param _strategy strategy address
      */
     function isDeployedStrategy(address _strategy) external view returns (bool) {
-        address _asset = IStrategyInterface(_strategy).asset();
-        return assetToStrategy[_asset] == _strategy;
+        address _market = IStrategyInterface(_strategy).market();
+        return marketToStrategy[_market] == _strategy;
     }
 
 
-    function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
-        assetToStrategy[_asset] = _strategy;
+    function setStrategyByAsset(address _market, address _strategy) external onlyManagement {
+        marketToStrategy[_market] = _strategy;
     }
 
     /**

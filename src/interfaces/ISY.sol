@@ -17,4 +17,7 @@ interface ISY {
         uint256 minTokenOut,
         bool burnFromInternalBalance) external payable returns (uint256 amountTokenOut);
     function isValidTokenIn(address) external view returns (bool);
+    function isValidTokenOut(address) external view returns (bool);
+    function previewRedeem(address tokenOut, uint256 amountSharesToRedeem) external view returns (uint256 amountTokenOut);
+    function previewDeposit(address tokenIn, uint256 amountTokenInToDeposit) external view returns (uint256 amountSharesOut);
 }

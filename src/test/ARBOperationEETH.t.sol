@@ -8,18 +8,20 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationCAMELOTARBETHTest is OperationTest {
+contract ARBOperationEETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
-
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> SY-ARB-ETH_Camelot Token exp.27 Jun 2024 Market --> asset
-        asset = ERC20(0x3803D89c31dE8B7DEf55C86f2469A5ea4Db41B92); //
-        //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //wETH
-        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 500;
+        oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
+        asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WETH
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
+        market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //PT-wstETH-26JUN25/SY-wstETH Market
+        //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
+        redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //wstETH
+        feeRedeemTokenToBase = 100;
+        feeRedeemTokenToBase = 100;
+        feeBaseToAsset = 100;
 
         //ARB rewards:
         additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
@@ -30,7 +32,7 @@ contract ARBOperationCAMELOTARBETHTest is OperationTest {
         feeAdditionalReward2toBase = 10000;
         
         //chain specific:
-        base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        base = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe;
         PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
         feePENDLEtoBase = 3000;
 
@@ -42,21 +44,11 @@ contract ARBOperationCAMELOTARBETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         
-        // reward:
-        if (additionalReward1 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
-        }
-
-        // reward:
-        if (additionalReward2 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
-        }
+ 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

@@ -12,17 +12,16 @@ interface IStrategyInterface is IStrategy {
     function sweep(address _token) external;
 
     function balanceAsset() external view returns (uint256);
-    function balanceStaked() external view returns (uint256);
 
-    function addReward(address _rewardToken, uint24 _feeRewardTokenToBase) external;
     function setProfitLimitRatio(uint256) external;
+    function setLossLimitRatio(uint256) external;
     function setDoHealthCheck(bool) external;
-    function setAutocompound(bool) external;
-    function setMinAmountToSellMapping(address, uint256) external;
     function setRouterParams(uint256 _guessMin, uint256 _guessMax, uint256 _maxIteration, uint256 _eps) external;
 
     function isExpired() external view returns (bool);
-
-    function setTradeFactory(address, bool) external;
-    function claimRewards() external;
+    function setMaxSingleTrade(uint256) external;
+    function market() external view returns (address);
+    function setSwapSlippageBPS(uint256) external;
+    function setOracleDuration(uint32) external;
+    function setChainlinkOracle(address _chainlinkOracle, uint256 _chainlinkHeartbeat) external;
 }

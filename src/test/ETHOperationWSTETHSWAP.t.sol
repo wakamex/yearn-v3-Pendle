@@ -8,17 +8,23 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationRSWETHTest is OperationTest {
+contract ETHOperationWSTETHSWAPTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
+        oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
+        asset = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-stETH-25DEC25/SY-stETH Market --> asset
+        market = ERC20(0xC374f7eC85F8C7DE3207a10bB1978bA104bdA3B2); //PT-stETH-25DEC25/SY-stETH Market
+        //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
+        redeemToken = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0; //WSTETH
+        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
+        feeRedeemTokenToBase = 100;
+        feeBaseToAsset = 100;
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-rswETH-27JUN24 /SY-rswETH Market --> asset
-        asset = ERC20(0x1729981345aa5CaCdc19eA9eeffea90cF1c6e28b); //PT-rswETH-27JUN24 /SY-rswETH Market
-        //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0; //rswETH
-        feeBaseToTargetToken = 3000;
+        //PENDLE -3000-> WETH -500-> USDC -500-> crvUSD
+
 
         //ARB rewards:
         //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
@@ -31,6 +37,7 @@ contract ETHOperationRSWETHTest is OperationTest {
         //chain specific:
         base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
         PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
+        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feePENDLEtoBase = 3000;
 
         pendleStaking = 0x6E799758CEE75DAe3d84e09D40dc416eCf713652; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
@@ -41,21 +48,11 @@ contract ETHOperationRSWETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         
-        // reward:
-        if (additionalReward1 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
-        }
-
-        // reward:
-        if (additionalReward2 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
-        }
+ 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

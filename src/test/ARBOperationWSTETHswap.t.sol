@@ -8,30 +8,24 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationRETHTest is OperationTest {
+contract ARBOperationWSTETHSWAPTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
-
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-rETH-26JUN25/SY-rETH Market Token  --> asset
-        asset = ERC20(0x14FbC760eFaF36781cB0eb3Cb255aD976117B9Bd); //PT-rETH-26JUN25/SY-rETH Market Token 
-        //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0xEC70Dcb4A1EFa46b8F2D97C310C9c4790ba5ffA8; //rETH
-        feeBaseToTargetToken = 500;
-
-        //ARB rewards:
-        additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
-        feeAdditionalReward1toBase = 500;
-
-        //PNP rewards:
-        //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
-        //feeAdditionalReward2toBase = 10000;
+        oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
+        asset = ERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
+        market = ERC20(0x08a152834de126d2ef83D612ff36e4523FD0017F); //PT-wstETH-26JUN25/SY-wstETH Market
+        //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
+        redeemToken = 0x5979D7b546E38E414F7E9822514be443A4800529; //wstETH
+        feeRedeemTokenToBase = 100;
+        chainlinkOracle = 0xb523AE262D20A936BC152e6023996e46FDC2A95D; //wstETH/ETH
+        chainlinkHeartbeat = 1e30;
         
         //chain specific:
         base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-        PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
-        feePENDLEtoBase = 3000;
+
 
         pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
         GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;  
@@ -41,24 +35,13 @@ contract ARBOperationRETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
-        vm.prank(management);
-        strategy.setRouterParams(0, type(uint256).max, 256, 1e16);
         
-        // reward:
-        if (additionalReward1 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
-        }
-
-        // reward:
-        if (additionalReward2 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
-        }
+        vm.prank(GOV);
+        strategy.setChainlinkOracle(chainlinkOracle, chainlinkHeartbeat);
+ 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

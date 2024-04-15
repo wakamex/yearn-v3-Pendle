@@ -47,20 +47,27 @@ interface IPendleRouter {
         YT_FOR_SY
     }
 
-    function addLiquiditySingleSy(
+    function swapExactSyForPt(
         address receiver,
         address market,
-        uint256 netSyIn,
-        uint256 minLpOut,
-        ApproxParams calldata guessPtReceivedFromSy,
+        uint256 exactSyIn,
+        uint256 minPtOut,
+        ApproxParams calldata guessPtOut,
         LimitOrderData calldata limit
-    ) external returns (uint256 netLpOut, uint256 netSyFee);
+    ) external returns (uint256 netPtOut, uint256 netSyFee);
 
-    function removeLiquiditySingleSy(
-        address receiver, 
-        address market, 
-        uint256 netLPToRemove, 
-        uint256 minSyOut, 
+    function swapExactPtForSy(
+        address receiver,
+        address market,
+        uint256 exactPtIn,
+        uint256 minSyOut,
         LimitOrderData calldata limit
     ) external returns (uint256 netSyOut, uint256 netSyFee);
+
+    function redeemPyToSy(
+        address receiver,
+        address YT,
+        uint256 netPyIn,
+        uint256 minSyOut
+    ) external returns (uint256 netSyOut);
 }
