@@ -164,8 +164,9 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         //SY --> PT
         if (currentBalance == 0) return;
         IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
+        (currentBalance, ) = IPendleRouter(pendleRouter).swapExactSyForPt(address(this), market, currentBalance, 0, routerParams, limit);
         //here we check minAmountOut versus initial asset amount
-        IPendleRouter(pendleRouter).swapExactSyForPt(address(this), market, currentBalance, 0, routerParams, limit);
+        require(_PTtoAsset(currentBalance) > _amount * (MAX_BPS - swapSlippageBPS) / MAX_BPS, "too little PT out");
 
         // Update the last time that we deposited.
         lastDeposit = block.timestamp;
@@ -345,8 +346,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     }
 
     // Set the buffer for reports in basis points. Can also be used to manually account for bigger depeg scenarios
-    function setBufferSlippageBPS(uint256 _swapSlippageBPS) external onlyManagement {
-        swapSlippageBPS = _swapSlippageBPS;
+    function setBufferSlippageBPS(uint256 _bufferSlippageBPS) external onlyManagement {
+        bufferSlippageBPS = _bufferSlippageBPS;
     }
 
     // Set the minimum deposit wait time.
