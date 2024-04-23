@@ -12,6 +12,7 @@ interface IStrategyInterface is IStrategy {
     function sweep(address _token) external;
 
     function balanceAsset() external view returns (uint256);
+    function balancePT() external view returns (uint256);
 
     function setProfitLimitRatio(uint256) external;
     function setLossLimitRatio(uint256) external;
@@ -24,4 +25,8 @@ interface IStrategyInterface is IStrategy {
     function setSwapSlippageBPS(uint256) external;
     function setOracleDuration(uint32) external;
     function setChainlinkOracle(address _chainlinkOracle, uint256 _chainlinkHeartbeat) external;
+    function rolloverMaturity(address market, uint256 _slippageBPS) external;
+    function PT() external view returns (address);
+    function SY() external view returns (address);
+    function YT() external view returns (address);
 }

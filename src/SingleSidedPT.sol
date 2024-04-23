@@ -127,7 +127,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         ERC20(_redeemToken).forceApprove(SY, type(uint).max);
         ERC20(SY).forceApprove(pendleRouter, type(uint).max);
         ERC20(PT).forceApprove(pendleRouter, type(uint).max);
-        ERC20(YT).forceApprove(pendleRouter, type(uint).max);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -139,7 +138,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     }
 
     function _invest(uint256 _amount) internal {
-        if (_isExpired()) return;
         uint256 currentBalance = _amount;
         //asset --> SY
         if (currentBalance <= minAssetAmountToPT) return;
@@ -180,8 +178,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         _uninvest(PTtoUninvest);
     }
 
-    function _uninvest(uint256 currentBalance) internal {
-        if (currentBalance == 0) return;
+    function _uninvest(uint256 currentBalance) internal returns (uint256) {
+        if (currentBalance == 0) return 0;
         //PT --> SY
         if (_isExpired()) { //if expired, redeem PY to SY
             currentBalance = IPendleRouter(pendleRouter).redeemPyToSy(address(this), YT, currentBalance, 0);
@@ -189,18 +187,18 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
             IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
             // We don't enforce any min amount out since withdrawer's can use 'maxLoss'
             (currentBalance, ) = IPendleRouter(pendleRouter).swapExactPtForSy(address(this), market, currentBalance, 0, limit);
-            if (currentBalance == 0) return;
+            if (currentBalance == 0) return 0;
         }
         //SY --> asset
         // We don't enforce any min amount out since withdrawers can use 'maxLoss'
         currentBalance = ISY(SY).redeem(address(this), currentBalance, redeemToken, 0, false);
-        if (redeemToken == address(asset)) return;
+        if (redeemToken == address(asset)) return currentBalance;
         // We don't enforce any min amount out since withdrawers can use 'maxLoss'
-        _swapFrom(redeemToken, address(asset), currentBalance, 0);
+        return _swapFrom(redeemToken, address(asset), currentBalance, 0);
     }
 
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
-        if (!TokenizedStrategy.isShutdown()) {
+        if (!_isExpired() && !TokenizedStrategy.isShutdown()) {
             _invest(Math.min(_balanceAsset(), maxSingleTrade));
         }
 
@@ -238,7 +236,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     }
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
-        if (block.timestamp - lastDeposit > minDepositInterval && _balanceAsset() > depositTrigger) {
+        if (!_isExpired() && block.timestamp - lastDeposit > minDepositInterval && _balanceAsset() > depositTrigger) {
             _shouldTend = block.basefee < maxTendBasefee;
         }
     }
@@ -247,7 +245,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         // If the owner is whitelisted or the strategy is open.
         if (allowed[_owner] || open) {
             // Allow the max of a single deposit.
-            return maxSingleTrade;
+            return type(uint256).max;
         } else {
             // Otherwise they cannot deposit.
             return 0;
@@ -373,15 +371,15 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
 
     // Manually pull funds out from the PT stack without shuting down.
     // This will also stop new deposits and withdraws.
-    // Can call tend after this to update internal balances.
-    function manualWithdraw(uint256 _amount) external onlyEmergencyAuthorized {
+    function manualWithdraw(uint256 _amount, uint256 _expectedAssetAmountOut) external onlyEmergencyAuthorized {
         maxSingleTrade = 0;
         depositTrigger = type(uint256).max;
         uint256 currentBalance = _balancePT();
         if (_amount > currentBalance) {
             _amount = currentBalance;
         }
-        _uninvest(_amount);
+        uint256 _amountOut = _uninvest(_amount);
+        require(_amountOut >= _expectedAssetAmountOut, "too little amountOut");
     }
 
     function _emergencyWithdraw(uint256 _amount) internal override {
@@ -389,7 +387,9 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         if (_amount > currentBalance) {
             _amount = currentBalance;
         }
-        _uninvest(_amount);
+        uint256 expectedAssetAmountOut = _PTtoAsset(_amount);
+        uint256 _amountOut = _uninvest(_amount);
+        require(_amountOut >= expectedAssetAmountOut * (MAX_BPS - swapSlippageBPS) / MAX_BPS, "too little amountOut");
     }
 
     /// @notice Roll over into the next maturity. Only callable by governance.
@@ -420,7 +420,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
 
         //approvals:
         ERC20(PT).forceApprove(pendleRouter, type(uint).max);
-        ERC20(YT).forceApprove(pendleRouter, type(uint).max);
 
         //SY into new PT
         if (currentBalance == 0) return;

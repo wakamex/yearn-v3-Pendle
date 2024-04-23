@@ -86,8 +86,8 @@ contract Setup is ExtendedTest, IEvents {
         //uint256 optimismFork = vm.createFork("optimism");
         
 
-        //vm.selectFork(mainnetFork);
-        vm.selectFork(arbitrumFork);
+        vm.selectFork(mainnetFork);
+        //vm.selectFork(arbitrumFork);
         //vm.selectFork(polygonFork);
         //vm.selectFork(optimismFork);
 
@@ -103,7 +103,7 @@ contract Setup is ExtendedTest, IEvents {
             
             oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
             GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
-            chainlinkOracle = 0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22; //weETH/ETH
+            //chainlinkOracle = 0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22; //weETH/ETH //not necessary since WETH is valid depositToken
             chainlinkHeartbeat = 1e30;
         }
         //Arbitrum:
@@ -218,9 +218,6 @@ contract Setup is ExtendedTest, IEvents {
         uint256 _totalIdle
     ) public {
         assertEq(_strategy.totalAssets(), _totalAssets, "!totalAssets");
-        //assertEq(_strategy.totalDebt(), _totalDebt, "!totalDebt");
-        //assertEq(_strategy.totalDebt(), _totalDebt, "!totalDebt");
-        //assertEq(_strategy.totalIdle(), _totalIdle, "!totalIdle");
         assertEq(asset.balanceOf(address(_strategy)), _totalIdle, "!totalIdle");
         assertEq(_totalAssets, _totalDebt + _totalIdle, "!Added");
     }
