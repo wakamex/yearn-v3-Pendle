@@ -104,7 +104,7 @@ contract OperationTest is Setup {
         checkStrategyInvariants(strategy);
 
         // Check return Values
-        assertGe(profit, toAirdrop * expectedMaxLossBPS / MAX_BPS, "!profit");
+        assertGe(profit, toAirdrop * 90_00 / MAX_BPS, "!profit");
         if (forceProfit == false) {
             assertGt(profit, 0, "!profit");
         }

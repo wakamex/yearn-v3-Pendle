@@ -27,8 +27,10 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     address public market;
     address public immutable SY;
     address public PT;
-    address public YT;
+    address internal YT;
+
     address public immutable redeemToken;
+    address internal immutable depositToken;
     address internal immutable oracle;
 
     uint32 public oracleDuration;
@@ -39,13 +41,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
 
     address internal constant pendleRouter = 0x00000000005BBB0EF59571E58418F9a4357b68A0;
     IPendleRouter.ApproxParams public routerParams;
-
-    //uniswapv3 quoter:
-    address internal constant quoter = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
-
-    // Bools to determine wether or not its necessary to unwrap asset or swap asset before depositing into SY.
-    bool internal immutable assetIsValidDepositToken;
-    bool internal immutable addressZeroIsValidDepositToken;
 
     address public immutable GOV; //yearn governance
     uint256 private constant WAD = 1e18;
@@ -93,16 +88,11 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         (SY, PT, YT) = IPendleMarket(_market).readTokens();        
         
         require(ISY(SY).isValidTokenOut(_redeemToken), "!valid out");  
-
-        //Immutable variables cannot be initialized inside an if statement, so we use a combination logic to check the correct deposit flow into SY.
-        assetIsValidDepositToken = ISY(SY).isValidTokenIn(_asset);
-        addressZeroIsValidDepositToken = ISY(SY).isValidTokenIn(address(0));
-
-        if (!assetIsValidDepositToken && !addressZeroIsValidDepositToken) { //if asset & address(0) are invalid, redeemToken should be validTokenIn
-            require(ISY(SY).isValidTokenIn(_redeemToken), "!valid in"); //if asset & address(0) & redeemToken are all invalid tokenIn --> revert
-        }
-
         redeemToken = _redeemToken;
+
+        depositToken = _getDepositToken();
+        require(ISY(SY).isValidTokenIn(depositToken), "!valid in");
+
         oracle = _oracle;
         GOV = _GOV;
 
@@ -129,6 +119,16 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         ERC20(PT).forceApprove(pendleRouter, type(uint).max);
     }
 
+    function _getDepositToken() internal view returns (address) {
+        if (ISY(SY).isValidTokenIn(address(asset))) { //asset is valid deposit token
+            return address(asset);
+        } else if (ISY(SY).isValidTokenIn(address(0))) { //address(0) is valid deposit token --> unwrap necessary
+            return address(0); //unwrapped
+        } else { //swap necessary
+            return redeemToken;
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                 INTERNAL
     //////////////////////////////////////////////////////////////*/
@@ -142,25 +142,22 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         //asset --> SY
         if (currentBalance <= minAssetAmountToPT) return;
         uint256 payableBalance;
-        address depositToken;
-        if (assetIsValidDepositToken) { //asset is valid deposit token
-            depositToken = address(asset);
-        } else if (addressZeroIsValidDepositToken) { //address(0) is valid deposit token --> unwrap necessary
-            IWETH(address(asset)).withdraw(currentBalance);
-            payableBalance = currentBalance;
-            depositToken = address(0); //unwrapped
-        } else { //swap necessary
-            depositToken = redeemToken;
-            //swap with minAmountOut check == 0, since we check later in swapExactSyForPT versus initial asset amount
-            currentBalance = _swapFrom(address(asset), depositToken, currentBalance, 0);
-            if (currentBalance == 0) revert("swap 0 out");
+
+        if (depositToken != address(asset)) { //skip further checks if asset is valid depositToken
+            if (depositToken == address(0)) { //address(0) is depositToken --> unwrap necessary
+                IWETH(address(asset)).withdraw(currentBalance);
+                payableBalance = currentBalance;
+            } else if (depositToken == redeemToken) { //swap necessary
+                //swap with minAmountOut check == 0, since we check later in swapExactSyForPT versus initial asset amount
+                currentBalance = _swapFrom(address(asset), depositToken, currentBalance, 0);
+                if (currentBalance == 0) revert("swap 0 out");
+            }
         }
 
         ISY(SY).deposit{value: payableBalance}(address(this), depositToken, currentBalance, 0);
         currentBalance = ERC20(SY).balanceOf(address(this));
 
         //SY --> PT
-        if (currentBalance == 0) return;
         IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
         (currentBalance, ) = IPendleRouter(pendleRouter).swapExactSyForPt(address(this), market, currentBalance, 0, routerParams, limit);
         //here we check minAmountOut versus initial asset amount
@@ -202,23 +199,24 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
             _invest(Math.min(_balanceAsset(), maxSingleTrade));
         }
 
-        _totalAssets = _balanceAsset() + _PTtoAsset(_balancePT());
+        _totalAssets = _balanceAsset() + _PTtoAsset(_balancePT()) * (MAX_BPS - bufferSlippageBPS) / MAX_BPS; //reduce PT balance by bufferSlippageBPS to account for the fact that it will need to be swapped back to asset
     }
 
     function _PTtoAsset(uint256 _amount) internal view returns (uint256) {
         //PT --> SY
         uint256 rate = IPendleOracle(oracle).getPtToSyRate(market, oracleDuration);
         _amount = _amount * rate / WAD;
+
         if (redeemToken == address(asset)) {
             //SY --> redeemToken == asset
             _amount = ISY(SY).previewRedeem(redeemToken, _amount);
             return _amount; //full value in asset
-        } else if (assetIsValidDepositToken) {
+        } else if (depositToken == address(asset)) {
             //SY --> assetIn
-            _amount = _amount * WAD / ISY(SY).previewDeposit(address(asset), WAD);
-        } else if (addressZeroIsValidDepositToken) {
+            return _amount * WAD / ISY(SY).previewDeposit(address(asset), WAD);
+        } else if (depositToken == address(0)) {
             //SY --> address(0) == assetIn
-            _amount = _amount * WAD / ISY(SY).previewDeposit(address(0), WAD);
+            return _amount * WAD / ISY(SY).previewDeposit(address(0), WAD);
         } else { //Chainlink oracle: SY --> redeemToken -- chainlink --> asset
             require(chainlinkOracle != address(0), "chainlink address");
             _amount = ISY(SY).previewRedeem(redeemToken, _amount);
@@ -226,9 +224,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
             uint256 divisor = 10 ** AggregatorInterface(chainlinkOracle).decimals();
             uint256 redeemTokenPrice = uint256(answer);
             require((redeemTokenPrice > 1 && block.timestamp - updatedAt < chainlinkHeartbeat), "!chainlink");
-            _amount = _amount * redeemTokenPrice / divisor; //redeemToken --> asset
+            return _amount * redeemTokenPrice / divisor; //redeemToken --> asset
         }
-        return _amount * (MAX_BPS - bufferSlippageBPS) / MAX_BPS; //needs to be swapped to asset --> reduce by bufferSlippageBPS as buffer
     }
 
     function _tend(uint256) internal override {
@@ -406,17 +403,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         require(_SY == SY, "wrong SY");
         PT = _PT;
         YT = _YT;
-
-        require(ISY(SY).isValidTokenOut(redeemToken), "!valid out");  
-        if (assetIsValidDepositToken) {
-            require(ISY(SY).isValidTokenIn(address(asset)), "asset !valid in");
-        }
-        if (addressZeroIsValidDepositToken) {
-            require(ISY(SY).isValidTokenIn(address(0)), "0 !valid in");
-        }
-        if (!assetIsValidDepositToken && !addressZeroIsValidDepositToken) { //if asset & address(0) are invalid, redeemToken should be validTokenIn
-            require(ISY(SY).isValidTokenIn(redeemToken), "!valid in"); //if asset & address(0) & redeemToken are all invalid tokenIn --> revert
-        }
 
         //approvals:
         ERC20(PT).forceApprove(pendleRouter, type(uint).max);
