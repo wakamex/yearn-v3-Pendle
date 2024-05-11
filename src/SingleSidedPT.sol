@@ -39,7 +39,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     address public chainlinkOracle;
     uint256 public chainlinkHeartbeat;
 
-    address internal constant pendleRouter = 0x00000000005BBB0EF59571E58418F9a4357b68A0;
+    address internal constant pendleRouter = 0x888888888889758F76e7103c6CbF23ABbF58F946;
     IPendleRouter.ApproxParams public routerParams;
 
     address public immutable GOV; //yearn governance
@@ -311,7 +311,15 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     // Set oracle duration price smoothing
     function setOracleDuration(uint32 _oracleDuration) external onlyEmergencyAuthorized {
         require(_oracleDuration != 0);
+        _checkOracle(market, _oracleDuration);
         oracleDuration = _oracleDuration;
+    }
+
+    function _checkOracle(address _market, uint32 _oracleDuration) internal {
+        (bool increaseCardinalityRequired, , bool oldestObservationSatisfied) = IPendleOracle(oracle).getOracleState(_market, _oracleDuration);
+        if (increaseCardinalityRequired || !oldestObservationSatisfied) {
+            revert("oracle not ready");
+        }
     }
 
     // Can also be used to pause deposits.
@@ -389,14 +397,27 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         require(_amountOut >= expectedAssetAmountOut * (MAX_BPS - swapSlippageBPS) / MAX_BPS, "too little amountOut");
     }
 
-    /// @notice Roll over into the next maturity. Only callable by governance.
+    /// @notice Stagger the withdrawal for the rollover into the next maturity in case the strategy has a large amount of total assets and cannot simply rollover entirely into the next maturity.
+    function staggerRolloverWithdrawal(uint256 _amount) external onlyEmergencyAuthorized {
+        require(_isExpired(), "not expired");
+        _emergencyWithdraw(_amount);
+    }
+
+    /// @notice Roll over into the next maturity. Call staggerRolloverWithdrawal first if you need to stagger the rollover withdrawals into several stages in case the strategy has a large amount of total assets. Only callable by governance.
     function rolloverMaturity(address _market, uint256 _slippageBPS) external onlyGovernance {
         require(_isExpired(), "not expired");
         require(_market != address(0), "!market");
         require(market != _market, "same market");
 
+        //check new market exists long enough for preset oracleDuration
+        uint32 _oracleDuration = oracleDuration;
+        _checkOracle(_market, _oracleDuration);
+
         //redeem all PT to SY
-        uint256 currentBalance = IPendleRouter(pendleRouter).redeemPyToSy(address(this), YT, _balancePT(), 0);
+        uint256 currentBalance = _balancePT();
+        if (currentBalance > 0) {
+            currentBalance = IPendleRouter(pendleRouter).redeemPyToSy(address(this), YT, currentBalance, 0);
+        }
         market = _market;
 
         (address _SY, address _PT, address _YT) = IPendleMarket(_market).readTokens();
@@ -411,8 +432,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         if (currentBalance == 0) return;
         IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
 
-        //calcualte minPTout
-        uint256 rate = IPendleOracle(oracle).getPtToSyRate(_market, oracleDuration); //rate PT to SY
+        //calculate minPTout
+        uint256 rate = IPendleOracle(oracle).getPtToSyRate(_market, _oracleDuration); //rate PT to SY
         uint256 minPTout = currentBalance * WAD * (MAX_BPS - _slippageBPS) / rate / MAX_BPS; //calculate SY value in PT accounting for slippage
 
         IPendleRouter(pendleRouter).swapExactSyForPt(address(this), _market, currentBalance, minPTout, routerParams, limit);
