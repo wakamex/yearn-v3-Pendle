@@ -48,6 +48,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     uint256 public minAssetAmountToPT;
     // The max in asset we will deposit or withdraw at a time.
     uint256 public maxSingleTrade;
+    // The total deposit limit for the strategy.
+    uint256 public depositLimit = type(uint256).max;
     // The amount in asset that will trigger a tend if idle.
     uint256 public depositTrigger;
     // The max amount the base fee can be for a tend to happen.
@@ -237,14 +239,17 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
             _shouldTend = block.basefee < maxTendBasefee;
         }
     }
-
+    
     function availableDepositLimit(address _owner) public view override returns (uint256) {
         // If the owner is whitelisted or the strategy is open.
         if (allowed[_owner] || open) {
-            // Allow the max of a single deposit.
-            return type(uint256).max;
+            uint256 totalDeposits = TokenizedStrategy.totalAssets();
+            if (depositLimit > totalDeposits) {
+                return depositLimit - totalDeposits;
+            } else {
+                return 0;
+            }
         } else {
-            // Otherwise they cannot deposit.
             return 0;
         }
     }
@@ -315,7 +320,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         oracleDuration = _oracleDuration;
     }
 
-    function _checkOracle(address _market, uint32 _oracleDuration) internal {
+    function _checkOracle(address _market, uint32 _oracleDuration) internal view {
         (bool increaseCardinalityRequired, , bool oldestObservationSatisfied) = IPendleOracle(oracle).getOracleState(_market, _oracleDuration);
         if (increaseCardinalityRequired || !oldestObservationSatisfied) {
             revert("oracle not ready");
@@ -326,6 +331,11 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     function setMaxSingleTrade(uint256 _maxSingleTrade) external onlyEmergencyAuthorized {
         require(_maxSingleTrade != type(uint256).max);
         maxSingleTrade = _maxSingleTrade;
+    }
+
+    // Set the deposit limit in asset. Set this to 0 to disallow deposits.
+    function setDepositLimit(uint256 _depositLimit) external onlyManagement {
+        depositLimit = _depositLimit;
     }
 
     // Set the minimum amount in asset that should be converted to PT.

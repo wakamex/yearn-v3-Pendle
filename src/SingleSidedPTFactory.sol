@@ -62,6 +62,37 @@ contract SingleSidedPTFactory {
     }
 
     /**
+     * @notice Deploy a new Single Sided Pendle PT Strategy.
+     * @return . The address of the new strategy.
+     */
+    function newSingleSidedPT(address _asset, address _market, address _redeemToken, uint24 _feeRedeemTokenToBase, address _base, uint24 _feeBaseToAsset, uint256 _maxSingleTrade, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
+
+        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPT(_asset, _market, _redeemToken, _feeRedeemTokenToBase, _base, _feeBaseToAsset, oracle, GOV, _name)));
+
+        newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
+
+        newStrategy.setKeeper(keeper);
+
+        newStrategy.setPendingManagement(management);
+
+        newStrategy.setEmergencyAdmin(emergencyAdmin);
+
+        newStrategy.setMaxSingleTrade(_maxSingleTrade);
+
+        if (_depositLimit != type(uint256).max) {
+            newStrategy.setDepositLimit(_depositLimit);
+        }
+        
+        newStrategy.setDepositTrigger(_depositTrigger);
+
+        emit NewSingleSidedPT(address(newStrategy), _asset);
+
+        marketToStrategy[_market] = address(newStrategy);
+
+        return address(newStrategy);
+    }
+
+    /**
      * @notice Retrieve the address of a strategy by market address
      * @param _market market address
      * @return strategy address
