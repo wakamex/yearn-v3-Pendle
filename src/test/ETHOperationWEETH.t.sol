@@ -8,23 +8,21 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationEETHunwrapTest is OperationTest {
+contract ETHOperationEETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
         oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
-        asset = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
+        asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //weETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
         market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //PT-eETH-27JUN24 /SY-weETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //WETH
+        redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeRedeemTokenToBase = 500;
-        //chain specific:
-        base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
-        feeBaseToAsset = 100;
-
+        feeBaseToAsset = 500;
+        base = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
 
         //ARB rewards:
         //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
@@ -34,6 +32,8 @@ contract ETHOperationEETHunwrapTest is OperationTest {
         //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
         //feeAdditionalReward2toBase = 10000;
         
+        //chain specific:
+
         PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feePENDLEtoBase = 3000;
@@ -46,10 +46,10 @@ contract ETHOperationEETHunwrapTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-
+        
  
 
         // label all the used addresses for traces

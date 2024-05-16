@@ -14,11 +14,11 @@ contract ARBOperationEETHTest is OperationTest {
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
         oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
-        asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WETH
+        asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WEETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
         market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //PT-wstETH-26JUN25/SY-wstETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //wstETH
+        redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //WEETH
         feeRedeemTokenToBase = 100;
         feeRedeemTokenToBase = 100;
         feeBaseToAsset = 100;
@@ -44,7 +44,7 @@ contract ARBOperationEETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         

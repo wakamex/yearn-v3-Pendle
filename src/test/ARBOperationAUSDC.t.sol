@@ -15,11 +15,11 @@ contract ARBOperationAUSDCTest is OperationTest {
         vm.selectFork(arbitrumFork);
         oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
 
-        asset = ERC20(0xaf88d065e77c8cC2239327C5EDb3A432268e5831); //USDC
+        asset = ERC20(0x724dc807b04555b71ed48a6896b6F41593b8C637); //aUSDC
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-aUSDC-27JUN24/SY-aUSDC Market --> asset
         market = ERC20(0xBa4A858d664Ddb052158168DB04AFA3cFF5CFCC8); //PT-aUSDC-27JUN24/SY-aUSDC Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //USDC
+        redeemToken = 0x724dc807b04555b71ed48a6896b6F41593b8C637; //aUSDC
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeRedeemTokenToBase = 500;
 
@@ -39,7 +39,7 @@ contract ARBOperationAUSDCTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
 

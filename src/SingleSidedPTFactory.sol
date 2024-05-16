@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
 
-import {SingleSidedPT} from "./SingleSidedPT.sol";
+import {SingleSidedPTcore} from "./SingleSidedPT.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
-contract SingleSidedPTFactory {
-    event NewSingleSidedPT(address indexed strategy, address indexed asset);
+contract SingleSidedPTcoreFactory {
+    event NewSingleSidedPTcore(address indexed strategy, address indexed asset);
 
     address public management;
     address public performanceFeeRecipient;
@@ -39,12 +39,12 @@ contract SingleSidedPTFactory {
     }
 
     /**
-     * @notice Deploy a new Single Sided Pendle PT Strategy.
+     * @notice Deploy a new Single Sided Pendle PT Core Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPT(address _asset, address _market, address _redeemToken, uint24 _feeRedeemTokenToBase, address _base, uint24 _feeBaseToAsset, string memory _name) external onlyManagement returns (address) {
+    function newSingleSidedPTcore(address _asset, address _market, string memory _name) external onlyManagement returns (address) {
 
-        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPT(_asset, _market, _redeemToken, _feeRedeemTokenToBase, _base, _feeBaseToAsset, oracle, GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -54,7 +54,7 @@ contract SingleSidedPTFactory {
 
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
-        emit NewSingleSidedPT(address(newStrategy), _asset);
+        emit NewSingleSidedPTcore(address(newStrategy), _asset);
 
         marketToStrategy[_market] = address(newStrategy);
 
@@ -65,9 +65,9 @@ contract SingleSidedPTFactory {
      * @notice Deploy a new Single Sided Pendle PT Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPT(address _asset, address _market, address _redeemToken, uint24 _feeRedeemTokenToBase, address _base, uint24 _feeBaseToAsset, uint256 _maxSingleTrade, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
+    function newSingleSidedPTcore(address _asset, address _market, uint256 _maxSingleTrade, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
 
-        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPT(_asset, _market, _redeemToken, _feeRedeemTokenToBase, _base, _feeBaseToAsset, oracle, GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -85,7 +85,7 @@ contract SingleSidedPTFactory {
         
         newStrategy.setDepositTrigger(_depositTrigger);
 
-        emit NewSingleSidedPT(address(newStrategy), _asset);
+        emit NewSingleSidedPTcore(address(newStrategy), _asset);
 
         marketToStrategy[_market] = address(newStrategy);
 
@@ -97,7 +97,7 @@ contract SingleSidedPTFactory {
      * @param _market market address
      * @return strategy address
      */
-    function getStrategyByAsset(address _market) external view returns (address) {
+    function getStrategyByMarket(address _market) external view returns (address) {
         return marketToStrategy[_market];
     }
 
@@ -110,8 +110,7 @@ contract SingleSidedPTFactory {
         return marketToStrategy[_market] == _strategy;
     }
 
-
-    function setStrategyByAsset(address _market, address _strategy) external onlyManagement {
+    function setStrategyByMarket(address _market, address _strategy) external onlyManagement {
         marketToStrategy[_market] = _strategy;
     }
 

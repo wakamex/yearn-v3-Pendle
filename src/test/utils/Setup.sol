@@ -6,8 +6,8 @@ import {ExtendedTest} from "./ExtendedTest.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {SingleSidedPTFactory} from "../../SingleSidedPTFactory.sol";
-import {SingleSidedPT} from "../../SingleSidedPT.sol";
+import {SingleSidedPTcoreFactory} from "../../SingleSidedPTFactory.sol";
+import {SingleSidedPTcore} from "../../SingleSidedPT.sol";
 import {IStrategyFactoryInterface} from "../../interfaces/IStrategyFactoryInterface.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 import {IPendleMarket} from "../../interfaces/IPendleMarket.sol";
@@ -94,7 +94,7 @@ contract Setup is ExtendedTest, IEvents {
         //Fork specific parameters:
         //MAINNET:
         if(vm.activeFork() == mainnetFork) {
-            asset = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
+            asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //WETH
             market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //eETH Pool 27 Jun 2024
             redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
             feeRedeemTokenToBase = 500;
@@ -108,7 +108,7 @@ contract Setup is ExtendedTest, IEvents {
         }
         //Arbitrum:
         if(vm.activeFork() == arbitrumFork) {
-            asset = ERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1); //WETH
+            asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WETH
             market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //eETH Pool 27 Jun 2024
             redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //weETH
             feeRedeemTokenToBase = 100;
@@ -127,7 +127,7 @@ contract Setup is ExtendedTest, IEvents {
 
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
 
         factory = strategy.FACTORY();
@@ -145,7 +145,7 @@ contract Setup is ExtendedTest, IEvents {
     function setUpStrategyFactory() public returns (IStrategyFactoryInterface) {
         IStrategyFactoryInterface _factory = IStrategyFactoryInterface(
             address(
-                new SingleSidedPTFactory(
+                new SingleSidedPTcoreFactory(
                     management,
                     performanceFeeRecipient,
                     keeper,
@@ -167,8 +167,6 @@ contract Setup is ExtendedTest, IEvents {
         strategy.setMaxSingleTrade(1e30);
         strategy.setSwapSlippageBPS(5_00);
         vm.stopPrank();
-        vm.prank(GOV);
-        strategy.setChainlinkOracle(chainlinkOracle, chainlinkHeartbeat);
     }
 
     function depositIntoStrategy(

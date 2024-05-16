@@ -12,16 +12,10 @@ import {IPendleOracle} from "./interfaces/IPendleOracle.sol";
 
 import {IWETH} from "./interfaces/IWETH.sol";
 
-import {UniswapV3Swapper} from "@periphery/swappers/UniswapV3Swapper.sol";
-import {TradeFactorySwapper, ITradeFactory} from "@periphery/swappers/TradeFactorySwapper.sol";
-import {AuctionSwapper, Auction} from "@periphery/swappers/AuctionSwapper.sol";
-
-import "./interfaces/Chainlink/AggregatorInterface.sol";
-
-/// @title yearn-v3-SingleSidedPT
+/// @title yearn-v3-SingleSidedPTcore
 /// @author mil0x
 /// @notice yearn-v3 Strategy that invests into Pendle PT positions.
-contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
+contract SingleSidedPTcore is BaseHealthCheck {
     using SafeERC20 for ERC20;
 
     address public market;
@@ -29,15 +23,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     address public PT;
     address internal YT;
 
-    address public immutable redeemToken;
-    address internal immutable depositToken;
     address internal immutable oracle;
-
     uint32 public oracleDuration;
-
-    // In case we use a chainlink oracle to check latest PT/asset price
-    address public chainlinkOracle;
-    uint256 public chainlinkHeartbeat;
 
     address internal constant pendleRouter = 0x888888888889758F76e7103c6CbF23ABbF58F946;
     IPendleRouter.ApproxParams public routerParams;
@@ -69,7 +56,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
     // Mapping of addresses allowed to deposit.
     mapping(address => bool) public allowed;
 
-    constructor(address _asset, address _market, address _redeemToken, uint24 _feeRedeemTokenToBase, address _base, uint24 _feeBaseToAsset, address _oracle, address _GOV, string memory _name) BaseHealthCheck(_asset, _name) {
+    constructor(address _asset, address _market, address _oracle, address _GOV, string memory _name) BaseHealthCheck(_asset, _name) {
         market = _market;
         require(!_isExpired(), "expired");
 
@@ -89,11 +76,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         
         (SY, PT, YT) = IPendleMarket(_market).readTokens();        
         
-        require(ISY(SY).isValidTokenOut(_redeemToken), "!valid out");  
-        redeemToken = _redeemToken;
-
-        depositToken = _getDepositToken();
-        require(ISY(SY).isValidTokenIn(depositToken), "!valid in");
+        require(ISY(SY).isValidTokenOut(_asset), "!valid out");  
+        require(ISY(SY).isValidTokenIn(_asset), "!valid in");
 
         oracle = _oracle;
         GOV = _GOV;
@@ -108,27 +92,11 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         _setLossLimitRatio(1_00);
         // Allow a 500% gain.
         _setProfitLimitRatio(500_00);
-
-        // Set uni swapper values
-        base = _base;
-        _setUniFees(_redeemToken, _base, _feeRedeemTokenToBase);
-        _setUniFees(_base, _asset, _feeBaseToAsset);
         
         //approvals:
         ERC20(_asset).forceApprove(SY, type(uint).max);
-        ERC20(_redeemToken).forceApprove(SY, type(uint).max);
         ERC20(SY).forceApprove(pendleRouter, type(uint).max);
         ERC20(PT).forceApprove(pendleRouter, type(uint).max);
-    }
-
-    function _getDepositToken() internal view returns (address) {
-        if (ISY(SY).isValidTokenIn(address(asset))) { //asset is valid deposit token
-            return address(asset);
-        } else if (ISY(SY).isValidTokenIn(address(0))) { //address(0) is valid deposit token --> unwrap necessary
-            return address(0); //unwrapped
-        } else { //swap necessary
-            return redeemToken;
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -143,20 +111,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         uint256 currentBalance = _amount;
         //asset --> SY
         if (currentBalance <= minAssetAmountToPT) return;
-        uint256 payableBalance;
-
-        if (depositToken != address(asset)) { //skip further checks if asset is valid depositToken
-            if (depositToken == address(0)) { //address(0) is depositToken --> unwrap necessary
-                IWETH(address(asset)).withdraw(currentBalance);
-                payableBalance = currentBalance;
-            } else if (depositToken == redeemToken) { //swap necessary
-                //swap with minAmountOut check == 0, since we check later in swapExactSyForPT versus initial asset amount
-                currentBalance = _swapFrom(address(asset), depositToken, currentBalance, 0);
-                if (currentBalance == 0) revert("swap 0 out");
-            }
-        }
-
-        ISY(SY).deposit{value: payableBalance}(address(this), depositToken, currentBalance, 0);
+        ISY(SY).deposit(address(this), address(asset), currentBalance, 0);
         currentBalance = ERC20(SY).balanceOf(address(this));
 
         //SY --> PT
@@ -190,10 +145,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         }
         //SY --> asset
         // We don't enforce any min amount out since withdrawers can use 'maxLoss'
-        currentBalance = ISY(SY).redeem(address(this), currentBalance, redeemToken, 0, false);
-        if (redeemToken == address(asset)) return currentBalance;
-        // We don't enforce any min amount out since withdrawers can use 'maxLoss'
-        return _swapFrom(redeemToken, address(asset), currentBalance, 0);
+        return ISY(SY).redeem(address(this), currentBalance, address(asset), 0, false);
     }
 
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
@@ -208,26 +160,8 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         //PT --> SY
         uint256 rate = IPendleOracle(oracle).getPtToSyRate(market, oracleDuration);
         _amount = _amount * rate / WAD;
-
-        if (redeemToken == address(asset)) {
-            //SY --> redeemToken == asset
-            _amount = ISY(SY).previewRedeem(redeemToken, _amount);
-            return _amount; //full value in asset
-        } else if (depositToken == address(asset)) {
-            //SY --> assetIn
-            return _amount * WAD / ISY(SY).previewDeposit(address(asset), WAD);
-        } else if (depositToken == address(0)) {
-            //SY --> address(0) == assetIn
-            return _amount * WAD / ISY(SY).previewDeposit(address(0), WAD);
-        } else { //Chainlink oracle: SY --> redeemToken -- chainlink --> asset
-            require(chainlinkOracle != address(0), "chainlink address");
-            _amount = ISY(SY).previewRedeem(redeemToken, _amount);
-            (, int256 answer, , uint256 updatedAt, ) = AggregatorInterface(chainlinkOracle).latestRoundData();
-            uint256 divisor = 10 ** AggregatorInterface(chainlinkOracle).decimals();
-            uint256 redeemTokenPrice = uint256(answer);
-            require((redeemTokenPrice > 1 && block.timestamp - updatedAt < chainlinkHeartbeat), "!chainlink");
-            return _amount * redeemTokenPrice / divisor; //redeemToken --> asset
-        }
+        //SY --> asset
+        return ISY(SY).previewRedeem(address(asset), _amount);
     }
 
     function _tend(uint256) internal override {
@@ -284,19 +218,6 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
 
     function isExpired() external view returns (bool) {
         return _isExpired();
-    }
-
-    /**
-     * @notice Set the uni fees for swaps.
-     * Any incentivized tokens will need a fee to be set for each
-     * reward token that it wishes to swap on reports.
-     *
-     * @param _token0 The first token of the pair.
-     * @param _token1 The second token of the pair.
-     * @param _fee The fee to be used for the pair.
-     */
-    function setUniFees(address _token0, address _token1, uint24 _fee) external onlyManagement {
-        _setUniFees(_token0, _token1, _fee);
     }
 
     /**
@@ -436,7 +357,7 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         YT = _YT;
 
         //approvals:
-        ERC20(PT).forceApprove(pendleRouter, type(uint).max);
+        ERC20(_PT).forceApprove(pendleRouter, type(uint).max);
 
         //SY into new PT
         if (currentBalance == 0) return;
@@ -449,16 +370,11 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         IPendleRouter(pendleRouter).swapExactSyForPt(address(this), _market, currentBalance, minPTout, routerParams, limit);
     }
 
-    /// @notice Set the chainlink oracle address & heartbeat. Only callable by governance.
-    function setChainlinkOracle(address _chainlinkOracle, uint256 _chainlinkHeartbeat) external onlyGovernance {
-        chainlinkOracle = _chainlinkOracle;
-        chainlinkHeartbeat = _chainlinkHeartbeat;
-    }
-
     /// @notice Sweep of non-asset ERC20 tokens to governance (onlyGovernance)
     /// @param _token The ERC20 token to sweep
     function sweep(address _token) external onlyGovernance {
         require(_token != address(asset), "!asset");
+        require(_token != PT, "!PT");
         ERC20(_token).safeTransfer(GOV, ERC20(_token).balanceOf(address(this)));
     }
 
@@ -467,5 +383,4 @@ contract SingleSidedPT is BaseHealthCheck, UniswapV3Swapper {
         _;
     }
 
-    receive() external payable {}
 }

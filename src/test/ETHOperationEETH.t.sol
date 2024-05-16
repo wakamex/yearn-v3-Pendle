@@ -14,11 +14,11 @@ contract ETHOperationEETHTest is OperationTest {
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
         oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
-        asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //weETH
+        asset = ERC20(0x35fA164735182de50811E8e2E824cFb9B6118ac2); //eETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
         market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //PT-eETH-27JUN24 /SY-weETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
+        redeemToken = 0x35fA164735182de50811E8e2E824cFb9B6118ac2; //eETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeRedeemTokenToBase = 500;
         feeBaseToAsset = 500;
@@ -46,7 +46,7 @@ contract ETHOperationEETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         

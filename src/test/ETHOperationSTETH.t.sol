@@ -8,20 +8,19 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationWSTETHSWAPTest is OperationTest {
+contract ETHOperationWSTETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
         oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
-        asset = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
+        asset = ERC20(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84); //STETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-stETH-25DEC25/SY-stETH Market --> asset
         market = ERC20(0xC374f7eC85F8C7DE3207a10bB1978bA104bdA3B2); //PT-stETH-25DEC25/SY-stETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0; //WSTETH
+        redeemToken = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84; //STETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feeRedeemTokenToBase = 100;
-        feeBaseToAsset = 100;
 
         //PENDLE -3000-> WETH -500-> USDC -500-> crvUSD
 
@@ -35,7 +34,7 @@ contract ETHOperationWSTETHSWAPTest is OperationTest {
         //feeAdditionalReward2toBase = 10000;
         
         //chain specific:
-        base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
+        base = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0; //WSTETH
         PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
         feePENDLEtoBase = 3000;
@@ -48,7 +47,7 @@ contract ETHOperationWSTETHSWAPTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
         

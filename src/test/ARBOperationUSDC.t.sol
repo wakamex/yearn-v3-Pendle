@@ -8,24 +8,28 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ARBOperationWSTETHSWAPTest is OperationTest {
+contract ARBOperationAUSDCTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
         oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
-        asset = ERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
-        market = ERC20(0x08a152834de126d2ef83D612ff36e4523FD0017F); //PT-wstETH-26JUN25/SY-wstETH Market
+
+        asset = ERC20(0xaf88d065e77c8cC2239327C5EDb3A432268e5831); //USDC
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-aUSDC-27JUN24/SY-aUSDC Market --> asset
+        market = ERC20(0xBa4A858d664Ddb052158168DB04AFA3cFF5CFCC8); //PT-aUSDC-27JUN24/SY-aUSDC Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
-        redeemToken = 0x5979D7b546E38E414F7E9822514be443A4800529; //wstETH
-        feeRedeemTokenToBase = 100;
-        chainlinkOracle = 0xb523AE262D20A936BC152e6023996e46FDC2A95D; //wstETH/ETH
-        chainlinkHeartbeat = 1e30;
+        redeemToken = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //USDC
+        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
+        feeRedeemTokenToBase = 500;
+
+        maxFuzzAmount = 1e6 * 1e6;
+        minFuzzAmount = 1e6;
         
         //chain specific:
         base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-
+        PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+        feePENDLEtoBase = 3000;
 
         pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
         GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;  
@@ -35,13 +39,12 @@ contract ARBOperationWSTETHSWAPTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPT(address(asset), address(market), redeemToken, feeRedeemTokenToBase, base, feeBaseToAsset, "Strategy"));
+        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
-        vm.prank(GOV);
-        strategy.setChainlinkOracle(chainlinkOracle, chainlinkHeartbeat);
- 
+
+        vm.prank(management);
+        strategy.setRouterParams(0, type(uint256).max, 256, 1e16);
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");
