@@ -94,7 +94,7 @@ contract Setup is ExtendedTest, IEvents {
         //Fork specific parameters:
         //MAINNET:
         if(vm.activeFork() == mainnetFork) {
-            asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //WETH
+            asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //WeETH
             market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //eETH Pool 27 Jun 2024
             redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
             feeRedeemTokenToBase = 500;

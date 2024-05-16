@@ -10,8 +10,6 @@ import {ISY} from "./interfaces/ISY.sol";
 import {IPendleRouter} from "./interfaces/IPendleRouter.sol";
 import {IPendleOracle} from "./interfaces/IPendleOracle.sol";
 
-import {IWETH} from "./interfaces/IWETH.sol";
-
 /// @title yearn-v3-SingleSidedPTcore
 /// @author mil0x
 /// @notice yearn-v3 Strategy that invests into Pendle PT positions.
@@ -108,9 +106,8 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _invest(uint256 _amount) internal {
-        uint256 currentBalance = _amount;
         //asset --> SY
-        if (currentBalance <= minAssetAmountToPT) return;
+        uint256 currentBalance = _amount;
         ISY(SY).deposit(address(this), address(asset), currentBalance, 0);
         currentBalance = ERC20(SY).balanceOf(address(this));
 
@@ -150,7 +147,10 @@ contract SingleSidedPTcore is BaseHealthCheck {
 
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
         if (!_isExpired() && !TokenizedStrategy.isShutdown()) {
-            _invest(Math.min(_balanceAsset(), maxSingleTrade));
+            uint256 assetBalance = _balanceAsset();
+            if (assetBalance > minAssetAmountToPT) {
+                _invest(_min(assetBalance, maxSingleTrade));
+            }
         }
 
         _totalAssets = _balanceAsset() + _PTtoAsset(_balancePT()) * (MAX_BPS - bufferSlippageBPS) / MAX_BPS; //reduce PT balance by bufferSlippageBPS to account for the fact that it will need to be swapped back to asset
@@ -165,7 +165,10 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _tend(uint256) internal override {
-        _invest(Math.min(_balanceAsset(), maxSingleTrade));
+        uint256 assetBalance = _balanceAsset();
+        if (assetBalance > minAssetAmountToPT) {
+            _invest(_min(assetBalance, maxSingleTrade));
+        }
     }
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
@@ -202,6 +205,10 @@ contract SingleSidedPTcore is BaseHealthCheck {
 
     function _isExpired() internal view returns (bool) {
         return IPendleMarket(market).isExpired();
+    }
+
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -259,7 +266,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
         depositLimit = _depositLimit;
     }
 
-    // Set the minimum amount in asset that should be converted to PT.
+    // Set the minimum amount in asset that should be converted to PT. Set this to max in order to not trigger any PT buying.
     function setMinAssetAmountToPT(uint256 _minAssetAmountToPT) external onlyManagement {
         minAssetAmountToPT = _minAssetAmountToPT;
     }

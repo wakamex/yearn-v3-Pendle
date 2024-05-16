@@ -8,7 +8,7 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationEETHTest is OperationTest {
+contract ETHOperationWEETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
