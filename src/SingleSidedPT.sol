@@ -178,7 +178,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
-        if (!_isExpired() && block.timestamp - lastDeposit > minDepositInterval && _balanceAsset() > depositTrigger && maxSingleTrade > 0) {
+        if (!_isExpired() && block.timestamp - lastDeposit > minDepositInterval && _balanceAsset() > depositTrigger && maxSingleTrade > 0 && !TokenizedStrategy.isShutdown()) {
             _shouldTend = block.basefee < maxTendBasefee;
         }
     }
@@ -379,6 +379,10 @@ contract SingleSidedPTcore is BaseHealthCheck {
         require(_amountOut >= _expectedAssetAmountOut, "too little amountOut");
     }
 
+    /**
+     * @notice Manually pull funds out from the PT stack after the strategy has been shutdown.
+     * @param _amount the PT amount to uninvest into asset
+     */
     function _emergencyWithdraw(uint256 _amount) internal override {
         uint256 currentBalance = _balancePT();
         if (_amount > currentBalance) {
