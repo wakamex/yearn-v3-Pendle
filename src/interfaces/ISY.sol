@@ -7,9 +7,6 @@ interface ISY {
         address tokenIn,
         uint256 amountTokenToDeposit,
         uint256 minSharesOut) external payable returns (uint256 amountSharesOut);
-    
- 
-    function getTokensIn() external view returns (address[] calldata);
     function redeem(
         address receiver,
         uint256 amountSharesToRedeem,
@@ -19,5 +16,4 @@ interface ISY {
     function isValidTokenIn(address) external view returns (bool);
     function isValidTokenOut(address) external view returns (bool);
     function previewRedeem(address tokenOut, uint256 amountSharesToRedeem) external view returns (uint256 amountTokenOut);
-    function previewDeposit(address tokenIn, uint256 amountTokenInToDeposit) external view returns (uint256 amountSharesOut);
 }
