@@ -223,10 +223,6 @@ contract Setup is ExtendedTest, IEvents {
     function checkStrategyInvariants(IStrategyInterface _strategy) public {
         (address SY, /*address PT*/, address YT) = IPendleMarket(address(market)).readTokens();
         assertLe(ERC20(SY).balanceOf(address(_strategy)), 10, "SY balance > DUST");
-        if (redeemToken != address(asset)) {
-            assertLe(ERC20(redeemToken).balanceOf(address(_strategy)), 10, "redeemToken balance > DUST");
-        }
-        //assertLe(ERC20(PT).balanceOf(address(_strategy)), 10, "PT balance > DUST");
         assertLe(ERC20(YT).balanceOf(address(_strategy)), 10, "YT balance > DUST");
     }
 

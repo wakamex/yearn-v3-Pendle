@@ -47,6 +47,7 @@ contract MainTest is Setup {
         (profit, loss) = strategy.report();
         console.log("profit: ", profit);
         console.log("loss: ", loss);
+        console.log("PT amount after first report: ", strategy.balancePT());
         checkStrategyInvariants(strategy);
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
@@ -130,7 +131,7 @@ contract MainTest is Setup {
         require(strategy.isExpired() == true, "not expired");
 
         vm.prank(GOV);
-        strategy.rolloverMaturity(0x7d372819240D14fB477f17b964f95F33BeB4c704, 1_00); //EETH SEPT Maturity
+        strategy.rolloverMaturity(0x7d372819240D14fB477f17b964f95F33BeB4c704, 0); //EETH SEPT Maturity
 
         toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);

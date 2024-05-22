@@ -65,7 +65,7 @@ contract SingleSidedPTcoreFactory {
      * @notice Deploy a new Single Sided Pendle PT Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPTcore(address _asset, address _market, uint256 _maxSingleTrade, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
+    function newSingleSidedPTcore(address _asset, address _market, uint256 _maxSingleTrade, uint256 _maxSingleWithdraw, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
 
         IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
@@ -78,6 +78,8 @@ contract SingleSidedPTcoreFactory {
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
         newStrategy.setMaxSingleTrade(_maxSingleTrade);
+
+        newStrategy.setMaxSingleWithdraw(_maxSingleWithdraw);
 
         if (_depositLimit != type(uint256).max) {
             newStrategy.setDepositLimit(_depositLimit);

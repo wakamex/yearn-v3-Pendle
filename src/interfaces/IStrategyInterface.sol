@@ -21,6 +21,7 @@ interface IStrategyInterface is IStrategy {
 
     function isExpired() external view returns (bool);
     function setMaxSingleTrade(uint256) external;
+    function setMaxSingleWithdraw(uint256) external;
     function setDepositLimit(uint256) external;
     function setDepositTrigger(uint256) external;
     function market() external view returns (address);
