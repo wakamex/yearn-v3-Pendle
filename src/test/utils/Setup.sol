@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 import "forge-std/console.sol";
 import {ExtendedTest} from "./ExtendedTest.sol";
 
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {SingleSidedPTcoreFactory} from "../../SingleSidedPTFactory.sol";
@@ -25,6 +26,7 @@ interface IFactory {
 }
 
 contract Setup is ExtendedTest, IEvents {
+    using SafeERC20 for ERC20;
     // Contract instancees that we will use repeatedly.
     ERC20 public asset;
     ERC20 public market;
@@ -164,7 +166,7 @@ contract Setup is ExtendedTest, IEvents {
         strategy.setProfitLimitRatio(60535);
         strategy.setDoHealthCheck(false);
         strategy.setLossLimitRatio(50_00);
-        strategy.setMaxSingleTrade(1e30);
+        strategy.setTradeParams(0, 1e30);
         strategy.setSwapSlippageBPS(5_00);
         vm.stopPrank();
     }
@@ -184,7 +186,7 @@ contract Setup is ExtendedTest, IEvents {
         ERC20 _asset
     ) public {
         vm.prank(_user);
-        _asset.approve(address(_strategy), _amount);
+        _asset.forceApprove(address(_strategy), _amount);
 
         vm.prank(_user);
         _strategy.deposit(_amount, _user);

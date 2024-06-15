@@ -40,14 +40,14 @@ contract MainTest is Setup {
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
         assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
-        console.log("assetBalance: ", strategy.balanceAsset());
+        console.log("assetBalance: ", strategy.balanceOfAsset());
 
         // Report profit / loss
         vm.prank(keeper);
         (profit, loss) = strategy.report();
         console.log("profit: ", profit);
         console.log("loss: ", loss);
-        console.log("PT amount after first report: ", strategy.balancePT());
+        console.log("PT amount after first report: ", strategy.balanceOfPT());
         checkStrategyInvariants(strategy);
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
@@ -86,7 +86,7 @@ contract MainTest is Setup {
 
         checkStrategyInvariants(strategy);
         
-        console.log("assetBalance of strategy: ", strategy.balanceAsset());
+        console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
 
@@ -112,7 +112,7 @@ contract MainTest is Setup {
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
         assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
-        console.log("assetBalance: ", strategy.balanceAsset());
+        console.log("assetBalance: ", strategy.balanceOfAsset());
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);
@@ -155,7 +155,7 @@ contract MainTest is Setup {
 
         checkStrategyInvariants(strategy);
         
-        console.log("assetBalance of strategy: ", strategy.balanceAsset());
+        console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }
@@ -179,7 +179,7 @@ contract MainTest is Setup {
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
         assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
         console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
-        console.log("assetBalance: ", strategy.balanceAsset());
+        console.log("assetBalance: ", strategy.balanceOfAsset());
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);
@@ -205,7 +205,7 @@ contract MainTest is Setup {
 
         checkStrategyInvariants(strategy);
         
-        console.log("assetBalance of strategy: ", strategy.balanceAsset());
+        console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }

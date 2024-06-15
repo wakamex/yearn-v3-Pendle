@@ -15,7 +15,7 @@ contract SingleSidedPTcoreFactory {
     address public immutable emergencyAdmin;
     address public immutable GOV;
 
-    mapping(address => address) public marketToStrategy;
+    mapping(address => address) public assetToStrategy;
 
     constructor(
         address _management,
@@ -56,7 +56,7 @@ contract SingleSidedPTcoreFactory {
 
         emit NewSingleSidedPTcore(address(newStrategy), _asset);
 
-        marketToStrategy[_market] = address(newStrategy);
+        assetToStrategy[_asset] = address(newStrategy);
 
         return address(newStrategy);
     }
@@ -65,7 +65,7 @@ contract SingleSidedPTcoreFactory {
      * @notice Deploy a new Single Sided Pendle PT Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPTcore(address _asset, address _market, uint256 _maxSingleTrade, uint256 _maxSingleWithdraw, uint256 _depositLimit, uint256 _depositTrigger, string memory _name) external onlyManagement returns (address) {
+    function newSingleSidedPTcore(address _asset, address _market, uint128 _minAssetAmountToPT, uint128 _maxSingleTrade, uint256 _depositLimit, uint128 _depositTrigger, uint48 _maxTendBaseFee, uint40 _minDepositInterval, string memory _name) external onlyManagement returns (address) {
 
         IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
@@ -77,30 +77,28 @@ contract SingleSidedPTcoreFactory {
 
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
-        newStrategy.setMaxSingleTrade(_maxSingleTrade);
+        newStrategy.setTradeParams(_minAssetAmountToPT, _maxSingleTrade);
 
-        newStrategy.setMaxSingleWithdraw(_maxSingleWithdraw);
+        newStrategy.setTendTriggerParams(_depositTrigger, _maxTendBaseFee, _minDepositInterval);
 
         if (_depositLimit != type(uint256).max) {
             newStrategy.setDepositLimit(_depositLimit);
         }
-        
-        newStrategy.setDepositTrigger(_depositTrigger);
 
         emit NewSingleSidedPTcore(address(newStrategy), _asset);
 
-        marketToStrategy[_market] = address(newStrategy);
+        assetToStrategy[_asset] = address(newStrategy);
 
         return address(newStrategy);
     }
 
     /**
-     * @notice Retrieve the address of a strategy by market address
-     * @param _market market address
+     * @notice Retrieve the address of a strategy by asset address
+     * @param _asset asset address
      * @return strategy address
      */
-    function getStrategyByMarket(address _market) external view returns (address) {
-        return marketToStrategy[_market];
+    function getStrategyByAsset(address _asset) external view returns (address) {
+        return assetToStrategy[_asset];
     }
 
     /**
@@ -108,12 +106,12 @@ contract SingleSidedPTcoreFactory {
      * @param _strategy strategy address
      */
     function isDeployedStrategy(address _strategy) external view returns (bool) {
-        address _market = IStrategyInterface(_strategy).market();
-        return marketToStrategy[_market] == _strategy;
+        address _asset = IStrategyInterface(_strategy).asset();
+        return assetToStrategy[_asset] == _strategy;
     }
 
-    function setStrategyByMarket(address _market, address _strategy) external onlyManagement {
-        marketToStrategy[_market] = _strategy;
+    function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
+        assetToStrategy[_asset] = _strategy;
     }
 
     /**

@@ -16,83 +16,80 @@ contract SingleSidedPTcore is BaseHealthCheck {
     using SafeERC20 for ERC20;
 
     address public market;
-    address public immutable SY;
-    address public PT;
-    address internal YT;
-
     address internal immutable oracle;
+    // Oracle TWAP duration
     uint32 public oracleDuration;
-
-    address internal constant pendleRouter = 0x888888888889758F76e7103c6CbF23ABbF58F946;
-    IPendleRouter.ApproxParams public routerParams;
-
-    address public immutable GOV; //yearn governance
-    uint256 private constant WAD = 1e18;
-
-    uint256 public minAssetAmountToPT;
-    // The max in asset will be invested by the keeper at a time.
-    uint256 public maxSingleTrade;
-    // The max in asset that can be withdrawn at a time.
-    uint256 public maxSingleWithdraw;
-    // The total deposit limit for the strategy.
-    uint256 public depositLimit = type(uint256).max;
-    // The amount in asset that will trigger a tend if idle.
-    uint256 public depositTrigger;
-    // The max amount the base fee can be for a tend to happen.
-    uint256 public maxTendBasefee;
-    // Minimum time between deposits to wait.
-    uint256 public minDepositInterval;
-    // Time stamp of the last deployment of funds.
-    uint256 public lastDeposit;
-    // Amount in Basis Points to allow for slippage when reporting.
-    uint256 public swapSlippageBPS;
-    // Amount in Basis Points to account for as buffer when reporting. Can also manually account for bigger depeg scenarios.
-    uint256 public bufferSlippageBPS;
-    
     // Bool if the strategy is open for any depositors. Default = true.
     bool public open = true;
 
     // Mapping of addresses allowed to deposit.
     mapping(address => bool) public allowed;
 
+    struct TradeParams {
+        uint128 minAssetAmountToPT; //Set the minimum amount in asset that should be converted to PT. Set this to max in order to not trigger any PT buying.
+        uint128 maxSingleTrade; // The max in asset will be invested by the keeper at a time.
+    }
+    TradeParams public tradeParams;
+
+    // The total deposit limit for the strategy.
+    uint256 public depositLimit = type(uint256).max;
+
+    address internal constant pendleRouter = 0x888888888889758F76e7103c6CbF23ABbF58F946;
+    IPendleRouter.ApproxParams public routerParams;
+
+    address public immutable SY;
+    address public PT;
+    address internal YT;
+
+    // Amount in Basis Points to allow for slippage when reporting.
+    uint256 public swapSlippageBPS;
+    // Amount in Basis Points to account for as buffer when reporting. Can also manually account for bigger depeg scenarios.
+    uint256 public bufferSlippageBPS;
+
+    // Struct for all variables involved in tendTrigger
+    struct TendTriggerParams {
+        uint128 depositTrigger; // The amount in asset that will trigger a tend if idle.
+        uint48 maxTendBaseFee; // The max amount the base fee can be for a tend to happen.
+        uint40 minDepositInterval; // Minimum time between deposits to wait.
+        uint40 lastDeposit; // Time stamp of the last deployment of funds.
+    }
+    TendTriggerParams public tendTriggerParams;
+
+    address public immutable GOV; //yearn governance
+    uint256 internal constant WAD = 1e18;
+
     constructor(address _asset, address _market, address _oracle, address _GOV, string memory _name) BaseHealthCheck(_asset, _name) {
         market = _market;
         require(!_isExpired(), "expired");
+        oracle = _oracle;
+        //Default oracle duration to 1 hour price smoothing recommendation by Pendle Finance
+        oracleDuration = 3600;
 
-        //Default oracle duration to 15 minutes price smoothing recommendation by Pendle Finance
-        oracleDuration = 900;
         //Default maxSingleTrade to 15 ETH as a majority of markets are ETH based. Change this for non-ETH.
-        maxSingleTrade = 15e18;
-        //Default maxSingleWithdraw to 501 ETH as a majority of markets are ETH based. Change this for non-ETH.
-        maxSingleWithdraw = 501e18;
-        // Default the deposit trigger to 5 ETH. Change this for non-ETH.
-        depositTrigger = 5e18;
-        // Default max tend fee to 100 gwei.
-        maxTendBasefee = 100e9;
-        // Default min deposit interval to 12 hours.
-        minDepositInterval = 60 * 60 * 12;
-        // Default slippage to 1%.
-        swapSlippageBPS = 100;
-        bufferSlippageBPS = 50;
+        tradeParams.maxSingleTrade = 15e18;
         
-        (SY, PT, YT) = IPendleMarket(_market).readTokens();        
-        
+        (SY, PT, YT) = IPendleMarket(_market).readTokens();
         require(ISY(SY).isValidTokenOut(_asset), "!valid out");  
         require(ISY(SY).isValidTokenIn(_asset), "!valid in");
 
-        oracle = _oracle;
-        GOV = _GOV;
+        // Default slippage to 0.5%.
+        swapSlippageBPS = 50;
+        bufferSlippageBPS = 50;
 
-        routerParams.guessMin = 0;
         routerParams.guessMax = type(uint256).max;
-        routerParams.guessOffchain = 0; // strictly 0
         routerParams.maxIteration = 256;
         routerParams.eps = 1e15; // max 0.1% unused
 
-        // Allow for 1% loss.
-        _setLossLimitRatio(1_00);
+        TendTriggerParams memory _tendTriggerParams;
+        _tendTriggerParams.depositTrigger = 5e18; // The amount in asset that will trigger a tend if idle. Default the deposit trigger to 5 ETH. Change this for non-ETH.
+        _tendTriggerParams.maxTendBaseFee = 100e9; // The max amount the base fee can be for a tend to happen. Default max tend fee to 100 gwei.
+        _tendTriggerParams.minDepositInterval = 43200; // Minimum time between deposits to wait. Default min deposit interval to 12 hours.
+        tendTriggerParams = _tendTriggerParams;
+
         // Allow a 500% gain.
         _setProfitLimitRatio(500_00);
+
+        GOV = _GOV;
         
         //approvals:
         ERC20(_asset).forceApprove(SY, type(uint).max);
@@ -109,6 +106,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _invest(uint256 _amount) internal {
+        if (_amount == 0) return;
         //asset --> SY
         ISY(SY).deposit(address(this), address(asset), _amount, 0);
         _amount = ERC20(SY).balanceOf(address(this));
@@ -119,14 +117,14 @@ contract SingleSidedPTcore is BaseHealthCheck {
         IPendleRouter(pendleRouter).swapExactSyForPt(address(this), market, _amount, minPTout, routerParams, limit);
 
         // Update the last time that we deposited.
-        lastDeposit = block.timestamp;
+        tendTriggerParams.lastDeposit = uint40(block.timestamp);
     }
 
     function _freeFunds(uint256 _amount) internal override {
         //Redeem PT shares proportional to the SSPT shares redeemed:
         uint256 totalAssets = TokenizedStrategy.totalAssets();
-        uint256 totalDebt = totalAssets - _balanceAsset();
-        uint256 PTtoUninvest = _balancePT() * _amount / totalDebt;
+        uint256 totalDebt = totalAssets - _balanceOfAsset();
+        uint256 PTtoUninvest = _balanceOfPT() * _amount / totalDebt;
         _uninvest(PTtoUninvest);
     }
 
@@ -148,13 +146,14 @@ contract SingleSidedPTcore is BaseHealthCheck {
 
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
         if (!_isExpired() && !TokenizedStrategy.isShutdown()) {
-            uint256 assetBalance = _balanceAsset();
-            if (assetBalance > minAssetAmountToPT) {
-                _invest(_min(assetBalance, maxSingleTrade));
+            uint256 assetBalance = _balanceOfAsset();
+            TradeParams memory _tradeParams = tradeParams;
+            if (assetBalance > _tradeParams.minAssetAmountToPT) {
+                _invest(_min(assetBalance, _tradeParams.maxSingleTrade));
             }
         }
 
-        _totalAssets = _balanceAsset() + _PTtoAsset(_balancePT()) * (MAX_BPS - bufferSlippageBPS) / MAX_BPS; //reduce PT balance by bufferSlippageBPS to account for the fact that it will need to be swapped back to asset
+        _totalAssets = _balanceOfAsset() + _PTtoAsset(_balanceOfPT()) * (MAX_BPS - bufferSlippageBPS) / MAX_BPS; //reduce PT balance by bufferSlippageBPS to account for the fact that it will need to be swapped back to asset
     }
 
     function _SYtoPT(uint256 _amount) internal view returns (uint256) {
@@ -170,15 +169,17 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _tend(uint256) internal override {
-        uint256 assetBalance = _balanceAsset();
-        if (assetBalance > minAssetAmountToPT) {
-            _invest(_min(assetBalance, maxSingleTrade));
+        uint256 assetBalance = _balanceOfAsset();
+        TradeParams memory _tradeParams = tradeParams;
+        if (assetBalance > _tradeParams.minAssetAmountToPT) {
+            _invest(_min(assetBalance, _tradeParams.maxSingleTrade));
         }
     }
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
-        if (!_isExpired() && block.timestamp - lastDeposit > minDepositInterval && _balanceAsset() > depositTrigger && maxSingleTrade > 0 && !TokenizedStrategy.isShutdown()) {
-            _shouldTend = block.basefee < maxTendBasefee;
+        TendTriggerParams memory _tendTriggerParams = tendTriggerParams;
+        if (!_isExpired() && block.timestamp - _tendTriggerParams.lastDeposit > _tendTriggerParams.minDepositInterval && _balanceOfAsset() > _tendTriggerParams.depositTrigger && tradeParams.maxSingleTrade > 0 && !TokenizedStrategy.isShutdown()) {
+            _shouldTend = block.basefee < _tendTriggerParams.maxTendBaseFee;
         }
     }
     
@@ -196,15 +197,11 @@ contract SingleSidedPTcore is BaseHealthCheck {
         }
     }
 
-    function availableWithdrawLimit(address /*_owner*/) public view override returns (uint256) {
-        return _balanceAsset() + maxSingleWithdraw;
-    }
-
-    function _balanceAsset() internal view returns (uint256) {
+    function _balanceOfAsset() internal view returns (uint256) {
         return asset.balanceOf(address(this));
     }
 
-    function _balancePT() internal view returns (uint256) {
+    function _balanceOfPT() internal view returns (uint256) {
         return ERC20(PT).balanceOf(address(this));
     }
 
@@ -227,16 +224,39 @@ contract SingleSidedPTcore is BaseHealthCheck {
                 EXTERNAL:
     //////////////////////////////////////////////////////////////*/
 
-    function balanceAsset() external view returns (uint256) {
-        return _balanceAsset();
+    function balanceOfAsset() external view returns (uint256) {
+        return _balanceOfAsset();
     }
 
-    function balancePT() external view returns (uint256) {
-        return _balancePT();
+    function balanceOfPT() external view returns (uint256) {
+        return _balanceOfPT();
     }
 
     function isExpired() external view returns (bool) {
         return _isExpired();
+    }
+
+    /**
+     * @notice Set oracle duration price smoothing
+     * @param _oracleDuration twap duration in seconds
+     */
+    function setOracleDuration(uint32 _oracleDuration) external onlyEmergencyAuthorized {
+        require(_oracleDuration != 0);
+        _checkOracle(market, _oracleDuration);
+        oracleDuration = _oracleDuration;
+    }
+
+    /**
+     * @notice Set the tradeParams for the strategy to decide on minimum investment and maximum single investments for the keeper.
+     * @param _minAssetAmountToPT Set the minimum amount in asset that should be converted to PT. Set this to max in order to not trigger any PT buying.
+     * @param _maxSingleTrade Set the max in asset amount that will be invested by the keeper at a time. Can also be used to pause keeper investments.
+     */
+    function setTradeParams(uint128 _minAssetAmountToPT, uint128 _maxSingleTrade) external onlyManagement {
+        require(_maxSingleTrade != type(uint128).max);
+        TradeParams memory _tradeParams;
+        _tradeParams.minAssetAmountToPT = _minAssetAmountToPT;
+        _tradeParams.maxSingleTrade = _maxSingleTrade;
+        tradeParams = _tradeParams;
     }
 
     /**
@@ -254,31 +274,16 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     /**
-     * @notice Set oracle duration price smoothing
-     * @param _oracleDuration twap duration in seconds
-     */
-    function setOracleDuration(uint32 _oracleDuration) external onlyEmergencyAuthorized {
-        require(_oracleDuration != 0);
-        _checkOracle(market, _oracleDuration);
-        oracleDuration = _oracleDuration;
-    }
-
-    /**
-     * @notice Set the max in asset amount that will be invested by the keeper at a time. Can also be used to pause keeper investments.
-     * @param _maxSingleTrade the amount in asset units
-     */
-    function setMaxSingleTrade(uint256 _maxSingleTrade) external onlyEmergencyAuthorized {
-        require(_maxSingleTrade != type(uint256).max);
-        maxSingleTrade = _maxSingleTrade;
-    }
-
-    /**
-     * @notice Set the max in asset amount that can be withdrawn at a time.
-     * @param _maxSingleWithdraw the amount in asset units
-     */
-    function setMaxSingleWithdraw(uint256 _maxSingleWithdraw) external onlyEmergencyAuthorized {
-        require(_maxSingleWithdraw != type(uint256).max);
-        maxSingleWithdraw = _maxSingleWithdraw;
+     * @notice Set the tendTriggerParams for all variables involved in tendTrigger.
+     * @param _depositTrigger The amount in asset that will trigger a tend if idle.
+     * @param _maxTendBaseFee The max amount the base fee can be for a tend to happen in wei.
+     * @param _minDepositInterval Minimum time between deposits to wait in seconds.
+    */
+    function setTendTriggerParams(uint128 _depositTrigger, uint48 _maxTendBaseFee, uint40 _minDepositInterval) external onlyManagement {
+        require(_minDepositInterval > 0, "interval too low");
+        tendTriggerParams.depositTrigger = _depositTrigger;
+        tendTriggerParams.maxTendBaseFee = _maxTendBaseFee;
+        tendTriggerParams.minDepositInterval = _minDepositInterval;
     }
 
     /**
@@ -287,30 +292,6 @@ contract SingleSidedPTcore is BaseHealthCheck {
      */
     function setDepositLimit(uint256 _depositLimit) external onlyManagement {
         depositLimit = _depositLimit;
-    }
-
-    /**
-     * @notice Set the minimum amount in asset that should be converted to PT. Set this to max in order to not trigger any PT buying.
-     * @param _minAssetAmountToPT the minimum amount in asset
-     */
-    function setMinAssetAmountToPT(uint256 _minAssetAmountToPT) external onlyManagement {
-        minAssetAmountToPT = _minAssetAmountToPT;
-    }
-
-    /**
-     * @notice Set the maximum base fee for tending to occur at.
-     * @param _maxTendBasefee the maximum base fee in wei units
-     */
-    function setMaxTendBasefee(uint256 _maxTendBasefee) external onlyManagement {
-        maxTendBasefee = _maxTendBasefee;
-    }
-
-    /**
-     * @notice Set the amount in asset that should trigger a tend if idle.
-     * @param _depositTrigger the deposit trigger in asset units
-     */
-    function setDepositTrigger(uint256 _depositTrigger) external onlyManagement {
-        depositTrigger = _depositTrigger;
     }
 
     /**
@@ -329,16 +310,6 @@ contract SingleSidedPTcore is BaseHealthCheck {
     function setBufferSlippageBPS(uint256 _bufferSlippageBPS) external onlyManagement {
         require(_bufferSlippageBPS <= MAX_BPS);
         bufferSlippageBPS = _bufferSlippageBPS;
-    }
-
-    /**
-     * @notice Set the minimum deposit wait time in seconds.
-     * @param _minDepositInterval the deposit wait time in seconds
-     */
-    function setDepositInterval(uint256 _minDepositInterval) external onlyManagement {
-        // Cannot set to 0.
-        require(_minDepositInterval > 0, "interval too low");
-        minDepositInterval = _minDepositInterval;
     }
 
     /**
@@ -368,9 +339,8 @@ contract SingleSidedPTcore is BaseHealthCheck {
      * @param _expectedAssetAmountOut the minimum acceptable asset amount as a result of uninvestment
      */
     function manualWithdraw(uint256 _amount, uint256 _expectedAssetAmountOut) external onlyEmergencyAuthorized {
-        maxSingleTrade = 0;
-        depositTrigger = type(uint256).max;
-        uint256 currentBalance = _balancePT();
+        tradeParams.maxSingleTrade = 0;
+        uint256 currentBalance = _balanceOfPT();
         if (_amount > currentBalance) {
             _amount = currentBalance;
         }
@@ -383,7 +353,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
      * @param _amount the PT amount to uninvest into asset
      */
     function _emergencyWithdraw(uint256 _amount) internal override {
-        uint256 currentBalance = _balancePT();
+        uint256 currentBalance = _balanceOfPT();
         if (_amount > currentBalance) {
             _amount = currentBalance;
         }
@@ -406,13 +376,14 @@ contract SingleSidedPTcore is BaseHealthCheck {
         _checkOracle(_market, oracleDuration);
 
         //redeem all PT to SY
-        uint256 currentBalance = _balancePT();
+        uint256 currentBalance = _balanceOfPT();
         if (currentBalance > 0) {
             currentBalance = IPendleRouter(pendleRouter).redeemPyToSy(address(this), YT, currentBalance, 0);
         }
 
         //set addresses to new maturity
         market = _market;
+        require(!_isExpired(), "expired");
         (address _SY, address _PT, address _YT) = IPendleMarket(_market).readTokens();
         require(_SY == SY, "wrong SY");
         PT = _PT;
