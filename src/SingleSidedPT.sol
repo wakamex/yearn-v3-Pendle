@@ -29,6 +29,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
         uint128 minAssetAmountToPT; //Set the minimum amount in asset that should be converted to PT. Set this to max in order to not trigger any PT buying.
         uint128 maxSingleTrade; // The max in asset will be invested by the keeper at a time.
     }
+
     TradeParams public tradeParams;
 
     // The total deposit limit for the strategy.
@@ -53,6 +54,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
         uint40 minDepositInterval; // Minimum time between deposits to wait.
         uint40 lastDeposit; // Time stamp of the last deployment of funds.
     }
+
     TendTriggerParams public tendTriggerParams;
 
     address public immutable GOV; //yearn governance
@@ -67,9 +69,9 @@ contract SingleSidedPTcore is BaseHealthCheck {
 
         //Default maxSingleTrade to 15 ETH as a majority of markets are ETH based. Change this for non-ETH.
         tradeParams.maxSingleTrade = 15e18;
-        
+
         (SY, PT, YT) = IPendleMarket(_market).readTokens();
-        require(ISY(SY).isValidTokenOut(_asset), "!valid out");  
+        require(ISY(SY).isValidTokenOut(_asset), "!valid out");
         require(ISY(SY).isValidTokenIn(_asset), "!valid in");
 
         // Default slippage to 0.5%.
@@ -90,11 +92,11 @@ contract SingleSidedPTcore is BaseHealthCheck {
         _setProfitLimitRatio(500_00);
 
         GOV = _GOV;
-        
+
         //approvals:
-        ERC20(_asset).forceApprove(SY, type(uint).max);
-        ERC20(SY).forceApprove(pendleRouter, type(uint).max);
-        ERC20(PT).forceApprove(pendleRouter, type(uint).max);
+        ERC20(_asset).forceApprove(SY, type(uint256).max);
+        ERC20(SY).forceApprove(pendleRouter, type(uint256).max);
+        ERC20(PT).forceApprove(pendleRouter, type(uint256).max);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -131,12 +133,13 @@ contract SingleSidedPTcore is BaseHealthCheck {
     function _uninvest(uint256 currentBalance) internal returns (uint256) {
         if (currentBalance == 0) return 0;
         //PT --> SY
-        if (_isExpired()) { //if expired, redeem PY to SY
+        if (_isExpired()) {
+            //if expired, redeem PY to SY
             currentBalance = IPendleRouter(pendleRouter).redeemPyToSy(address(this), YT, currentBalance, 0);
         } else {
             IPendleRouter.LimitOrderData memory limit; //skip limit order by passing zero address
             // We don't enforce any min amount out since withdrawer's can use 'maxLoss'
-            (currentBalance, ) = IPendleRouter(pendleRouter).swapExactPtForSy(address(this), market, currentBalance, 0, limit);
+            (currentBalance,) = IPendleRouter(pendleRouter).swapExactPtForSy(address(this), market, currentBalance, 0, limit);
             if (currentBalance == 0) return 0;
         }
         //SY --> asset
@@ -178,11 +181,14 @@ contract SingleSidedPTcore is BaseHealthCheck {
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
         TendTriggerParams memory _tendTriggerParams = tendTriggerParams;
-        if (!_isExpired() && block.timestamp - _tendTriggerParams.lastDeposit > _tendTriggerParams.minDepositInterval && _balanceOfAsset() > _tendTriggerParams.depositTrigger && tradeParams.maxSingleTrade > 0 && !TokenizedStrategy.isShutdown()) {
+        if (
+            !_isExpired() && block.timestamp - _tendTriggerParams.lastDeposit > _tendTriggerParams.minDepositInterval
+                && _balanceOfAsset() > _tendTriggerParams.depositTrigger && tradeParams.maxSingleTrade > 0 && !TokenizedStrategy.isShutdown()
+        ) {
             _shouldTend = block.basefee < _tendTriggerParams.maxTendBaseFee;
         }
     }
-    
+
     function availableDepositLimit(address _owner) public view override returns (uint256) {
         // If the owner is whitelisted or the strategy is open.
         if (allowed[_owner] || open) {
@@ -210,7 +216,8 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _checkOracle(address _market, uint32 _oracleDuration) internal view {
-        (bool increaseCardinalityRequired, , bool oldestObservationSatisfied) = IPendleOracle(oracle).getOracleState(_market, _oracleDuration);
+        (bool increaseCardinalityRequired,, bool oldestObservationSatisfied) =
+            IPendleOracle(oracle).getOracleState(_market, _oracleDuration);
         if (increaseCardinalityRequired || !oldestObservationSatisfied) {
             revert("oracle not ready");
         }
@@ -264,7 +271,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
      * @param _guessMin The minimum value for binary search. Default: 0.
      * @param _guessMax The maximum value for binary search. Default: type(uint256).max.
      * @param _maxIteration The maximum number of times binary search will be performed. Default: 256.
-     * @param _eps The precision of binary search - the maximum proportion of the input that can be unused. Default: 1e15 == max 0.1% unused. Alternatively: 1e14 implies that no more than 0.01% unused.     
+     * @param _eps The precision of binary search - the maximum proportion of the input that can be unused. Default: 1e15 == max 0.1% unused. Alternatively: 1e14 implies that no more than 0.01% unused.
      */
     function setRouterParams(uint256 _guessMin, uint256 _guessMax, uint256 _maxIteration, uint256 _eps) external onlyManagement {
         routerParams.guessMin = _guessMin; // default: 0
@@ -278,7 +285,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
      * @param _depositTrigger The amount in asset that will trigger a tend if idle.
      * @param _maxTendBaseFee The max amount the base fee can be for a tend to happen in wei.
      * @param _minDepositInterval Minimum time between deposits to wait in seconds.
-    */
+     */
     function setTendTriggerParams(uint128 _depositTrigger, uint48 _maxTendBaseFee, uint40 _minDepositInterval) external onlyManagement {
         require(_minDepositInterval > 0, "interval too low");
         tendTriggerParams.depositTrigger = _depositTrigger;
@@ -388,7 +395,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
         require(_SY == SY, "wrong SY");
         PT = _PT;
         YT = _YT;
-        ERC20(_PT).forceApprove(pendleRouter, type(uint).max);
+        ERC20(_PT).forceApprove(pendleRouter, type(uint256).max);
 
         //redeem all SY into asset (let keeper move asset to new PT over time)
         if (currentBalance == 0 && _minAssetAmountOut == 0) return;
@@ -409,5 +416,4 @@ contract SingleSidedPTcore is BaseHealthCheck {
         require(msg.sender == GOV, "!gov");
         _;
     }
-
 }

@@ -30,15 +30,15 @@ contract ARBOperationEETHTest is OperationTest {
         //PNP rewards:
         additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
         feeAdditionalReward2toBase = 10000;
-        
+
         //chain specific:
         base = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe;
         PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
         feePENDLEtoBase = 3000;
 
         pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
-        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;  
-        
+        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
+
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
@@ -47,8 +47,6 @@ contract ARBOperationEETHTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
- 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

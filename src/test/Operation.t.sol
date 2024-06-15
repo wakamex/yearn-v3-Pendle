@@ -20,7 +20,7 @@ contract OperationTest is Setup {
         // TODO: add additional check on strat params
     }
 
-    function test_operation_NoFees(uint256 _amount /*, uint8 _profitFactor*/) public {
+    function test_operation_NoFees(uint256 _amount /*, uint8 _profitFactor*/ ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, 5_00));
@@ -44,7 +44,6 @@ contract OperationTest is Setup {
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);
         airdrop(asset, address(strategy), toAirdrop);
-        
 
         // Report profit
         vm.prank(keeper);
@@ -70,10 +69,10 @@ contract OperationTest is Setup {
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_profitableReport_expectedFees(
-        uint256 _amount
+    function test_profitableReport_expectedFees(uint256 _amount)
         /* ,uint8 _profitFactor*/
-    ) public {
+        public
+    {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, 1_00));
@@ -97,7 +96,7 @@ contract OperationTest is Setup {
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         airdrop(asset, address(strategy), toAirdrop);
-        
+
         // Report profit
         vm.prank(keeper);
         (profit, loss) = strategy.report();
@@ -135,10 +134,10 @@ contract OperationTest is Setup {
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_profitableReport_expectedProfit(
-        uint256 _amount
+    function test_profitableReport_expectedProfit(uint256 _amount)
         /* ,uint8 _profitFactor*/
-    ) public {
+        public
+    {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 1_00, 20_00));
@@ -146,7 +145,7 @@ contract OperationTest is Setup {
         uint256 loss;
         // Set protofol fee to 0 and perf fee to 10%
         setFees(0, 1_000);
-        
+
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
         checkStrategyTotals(strategy, _amount, 0, _amount);
@@ -168,7 +167,7 @@ contract OperationTest is Setup {
         (profit, loss) = strategy.report();
         console.log("profit: ", profit);
         console.log("loss: ", loss);
-        
+
         checkStrategyInvariants(strategy);
 
         // Check return Values
@@ -180,7 +179,7 @@ contract OperationTest is Setup {
         // Get the expected profit
         uint256 expectedProfit = (profit * 1_000) / MAX_BPS;
         uint256 balanceBefore = asset.balanceOf(user);
-        
+
         // Withdraw all funds
         vm.prank(user);
         strategy.redeem(_amount, user, user);
@@ -195,7 +194,7 @@ contract OperationTest is Setup {
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_emergencyWithdrawAll(uint256 _amount /* ,uint8 _profitFactor*/) public {
+    function test_emergencyWithdrawAll(uint256 _amount /* ,uint8 _profitFactor*/ ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, MAX_BPS));
@@ -228,7 +227,7 @@ contract OperationTest is Setup {
 
         vm.prank(management);
         strategy.shutdownStrategy();
-        vm.prank(management); 
+        vm.prank(management);
         strategy.emergencyWithdraw(type(uint256).max);
         assertGe(asset.balanceOf(address(strategy)), (_amount + toAirdrop) * expectedMaxLossBPS / MAX_BPS, "!all in asset");
         checkStrategyInvariants(strategy);

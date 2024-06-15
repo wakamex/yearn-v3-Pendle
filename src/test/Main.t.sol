@@ -6,7 +6,6 @@ import {Setup} from "./utils/Setup.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MainTest is Setup {
-
     function setUp() public override {
         super.setUp();
     }
@@ -85,14 +84,14 @@ contract MainTest is Setup {
         console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
 
         checkStrategyInvariants(strategy);
-        
+
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
 
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
-    
+
     function test_rollover_maturity() public {
         setFees(0, 0);
         //init
@@ -154,13 +153,13 @@ contract MainTest is Setup {
         console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
 
         checkStrategyInvariants(strategy);
-        
+
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }
-    
-        function test_withdraw_after_expiry() public {
+
+    function test_withdraw_after_expiry() public {
         setFees(0, 0);
         //init
         uint256 _amount = 10e18;
@@ -204,12 +203,9 @@ contract MainTest is Setup {
         console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
 
         checkStrategyInvariants(strategy);
-        
+
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
         console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }
-
 }
-
-

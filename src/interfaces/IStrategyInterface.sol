@@ -4,10 +4,7 @@ pragma solidity 0.8.18;
 import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 interface IStrategyInterface is IStrategy {
-
-    function reportTrigger(
-        address _strategy
-    ) external view returns (bool, bytes memory);
+    function reportTrigger(address _strategy) external view returns (bool, bytes memory);
 
     function sweep(address _token) external;
 

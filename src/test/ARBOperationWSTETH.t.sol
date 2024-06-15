@@ -20,14 +20,13 @@ contract ARBOperationWSTETHTest is OperationTest {
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
         redeemToken = 0x5979D7b546E38E414F7E9822514be443A4800529; //wstETH
         feeRedeemTokenToBase = 100;
-        
+
         //chain specific:
         base = 0x5979D7b546E38E414F7E9822514be443A4800529;
 
-
         pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
-        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;  
-        
+        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
+
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
@@ -36,8 +35,6 @@ contract ARBOperationWSTETHTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
- 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

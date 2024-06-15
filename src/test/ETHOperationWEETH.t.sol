@@ -31,7 +31,7 @@ contract ETHOperationWEETHTest is OperationTest {
         //PNP rewards:
         //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
         //feeAdditionalReward2toBase = 10000;
-        
+
         //chain specific:
 
         PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
@@ -39,8 +39,8 @@ contract ETHOperationWEETHTest is OperationTest {
         feePENDLEtoBase = 3000;
 
         pendleStaking = 0x6E799758CEE75DAe3d84e09D40dc416eCf713652; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
-        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;  
-        
+        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
@@ -49,8 +49,6 @@ contract ETHOperationWEETHTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
- 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

@@ -28,6 +28,7 @@ interface IFactory {
 contract Setup is ExtendedTest, IEvents {
     using SafeERC20 for ERC20;
     // Contract instancees that we will use repeatedly.
+
     ERC20 public asset;
     ERC20 public market;
     address public oracle;
@@ -86,7 +87,6 @@ contract Setup is ExtendedTest, IEvents {
         uint256 arbitrumFork = vm.createFork("arbitrum");
         //uint256 polygonFork = vm.createFork("polygon");
         //uint256 optimismFork = vm.createFork("optimism");
-        
 
         vm.selectFork(mainnetFork);
         //vm.selectFork(arbitrumFork);
@@ -95,21 +95,21 @@ contract Setup is ExtendedTest, IEvents {
 
         //Fork specific parameters:
         //MAINNET:
-        if(vm.activeFork() == mainnetFork) {
+        if (vm.activeFork() == mainnetFork) {
             asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //WeETH
             market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //eETH Pool 27 Jun 2024
             redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
             feeRedeemTokenToBase = 500;
             base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
             feeBaseToAsset = 100;
-            
+
             oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
             GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
             //chainlinkOracle = 0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22; //weETH/ETH //not necessary since WETH is valid depositToken
             chainlinkHeartbeat = 1e30;
         }
         //Arbitrum:
-        if(vm.activeFork() == arbitrumFork) {
+        if (vm.activeFork() == arbitrumFork) {
             asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WETH
             market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //eETH Pool 27 Jun 2024
             redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //weETH
@@ -122,7 +122,7 @@ contract Setup is ExtendedTest, IEvents {
             chainlinkOracle = 0xE141425bc1594b8039De6390db1cDaf4397EA22b; //weETH/ETH
             chainlinkHeartbeat = 1e30;
         }
-        
+
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
@@ -133,7 +133,7 @@ contract Setup is ExtendedTest, IEvents {
         setUpStrategy();
 
         factory = strategy.FACTORY();
-        
+
         // label all the used addresses for traces
         vm.label(keeper, "keeper");
         vm.label(factory, "factory");
@@ -145,18 +145,8 @@ contract Setup is ExtendedTest, IEvents {
     }
 
     function setUpStrategyFactory() public returns (IStrategyFactoryInterface) {
-        IStrategyFactoryInterface _factory = IStrategyFactoryInterface(
-            address(
-                new SingleSidedPTcoreFactory(
-                    management,
-                    performanceFeeRecipient,
-                    keeper,
-                    oracle,
-                    GOV,
-                    GOV
-                )
-            )
-        );
+        IStrategyFactoryInterface _factory =
+            IStrategyFactoryInterface(address(new SingleSidedPTcoreFactory(management, performanceFeeRecipient, keeper, oracle, GOV, GOV)));
         return _factory;
     }
 
@@ -171,20 +161,11 @@ contract Setup is ExtendedTest, IEvents {
         vm.stopPrank();
     }
 
-    function depositIntoStrategy(
-        IStrategyInterface _strategy,
-        address _user,
-        uint256 _amount
-    ) public {
+    function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
         depositIntoStrategy(_strategy, _user, _amount, asset);
     }
 
-    function depositIntoStrategy(
-        IStrategyInterface _strategy,
-        address _user,
-        uint256 _amount,
-        ERC20 _asset
-    ) public {
+    function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount, ERC20 _asset) public {
         vm.prank(_user);
         _asset.forceApprove(address(_strategy), _amount);
 
@@ -192,31 +173,17 @@ contract Setup is ExtendedTest, IEvents {
         _strategy.deposit(_amount, _user);
     }
 
-    function mintAndDepositIntoStrategy(
-        IStrategyInterface _strategy,
-        address _user,
-        uint256 _amount
-    ) public {
+    function mintAndDepositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
         mintAndDepositIntoStrategy(_strategy, _user, _amount, asset);
     }
 
-    function mintAndDepositIntoStrategy(
-        IStrategyInterface _strategy,
-        address _user,
-        uint256 _amount,
-        ERC20 _asset
-    ) public {
+    function mintAndDepositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount, ERC20 _asset) public {
         airdrop(_asset, _user, _amount);
         depositIntoStrategy(_strategy, _user, _amount, _asset);
     }
 
     // For checking the amounts in the strategy
-    function checkStrategyTotals(
-        IStrategyInterface _strategy,
-        uint256 _totalAssets,
-        uint256 _totalDebt,
-        uint256 _totalIdle
-    ) public {
+    function checkStrategyTotals(IStrategyInterface _strategy, uint256 _totalAssets, uint256 _totalDebt, uint256 _totalIdle) public {
         assertEq(_strategy.totalAssets(), _totalAssets, "!totalAssets");
         assertEq(asset.balanceOf(address(_strategy)), _totalIdle, "!totalIdle");
         assertEq(_totalAssets, _totalDebt + _totalIdle, "!Added");
@@ -248,7 +215,6 @@ contract Setup is ExtendedTest, IEvents {
         vm.stopPrank();
     }
 
-
     // For easier calculations we may want to set the performance fee
     // to 0 in some tests which is underneath the minimum. So we do it manually.
     function setPerformanceFeeToZero(address _strategy) public {
@@ -264,9 +230,7 @@ contract Setup is ExtendedTest, IEvents {
         // to maintain the same variables packed in the slot
 
         // profitMaxUnlock time is a uint32 at the most significant spot.
-        bytes32 data = bytes4(
-            uint32(IStrategyInterface(_strategy).profitMaxUnlockTime())
-        );
+        bytes32 data = bytes4(uint32(IStrategyInterface(_strategy).profitMaxUnlockTime()));
         // Free up space for the uint16 of performancFee
         data = data >> 16;
         // Store 0 in the performance fee spot.
@@ -274,9 +238,7 @@ contract Setup is ExtendedTest, IEvents {
         // Shit 160 bits for an address
         data = data >> 160;
         // Store the strategies peformance fee recipient
-        data |= bytes20(
-            uint160(IStrategyInterface(_strategy).performanceFeeRecipient())
-        );
+        data |= bytes20(uint160(IStrategyInterface(_strategy).performanceFeeRecipient()));
         // Shift the remainder of padding.
         data = data >> 48;
 
@@ -284,11 +246,7 @@ contract Setup is ExtendedTest, IEvents {
         vm.store(_strategy, slot, data);
     }
 
-    function _strategyStorage()
-        internal
-        pure
-        returns (TokenizedStrategy.StrategyData storage S)
-    {
+    function _strategyStorage() internal pure returns (TokenizedStrategy.StrategyData storage S) {
         // Since STORAGE_SLOT is a constant, we have to put a variable
         // on the stack to access it from an inline assembly block.
         bytes32 slot = BASE_STRATEGY_STORAGE;

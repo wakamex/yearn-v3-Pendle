@@ -18,8 +18,8 @@ contract ETHOperationEZETHTest is OperationTest {
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
         market = ERC20(0xD8F12bCDE578c653014F27379a6114F67F0e445f); //PT-ezETH-26 Dec 2024
 
-        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;  
-        
+        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
@@ -28,8 +28,6 @@ contract ETHOperationEZETHTest is OperationTest {
         strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
         setUpStrategy();
         factory = strategy.FACTORY();
-        
- 
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

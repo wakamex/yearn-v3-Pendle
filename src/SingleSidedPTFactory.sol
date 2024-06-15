@@ -11,7 +11,7 @@ contract SingleSidedPTcoreFactory {
     address public performanceFeeRecipient;
     address public keeper;
 
-    address public  immutable oracle;
+    address public immutable oracle;
     address public immutable emergencyAdmin;
     address public immutable GOV;
 
@@ -20,7 +20,7 @@ contract SingleSidedPTcoreFactory {
     constructor(
         address _management,
         address _peformanceFeeRecipient,
-        address _keeper, 
+        address _keeper,
         address _oracle,
         address _emergencyAdmin,
         address _GOV
@@ -43,7 +43,6 @@ contract SingleSidedPTcoreFactory {
      * @return . The address of the new strategy.
      */
     function newSingleSidedPTcore(address _asset, address _market, string memory _name) external onlyManagement returns (address) {
-
         IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
@@ -65,8 +64,17 @@ contract SingleSidedPTcoreFactory {
      * @notice Deploy a new Single Sided Pendle PT Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPTcore(address _asset, address _market, uint128 _minAssetAmountToPT, uint128 _maxSingleTrade, uint256 _depositLimit, uint128 _depositTrigger, uint48 _maxTendBaseFee, uint40 _minDepositInterval, string memory _name) external onlyManagement returns (address) {
-
+    function newSingleSidedPTcore(
+        address _asset,
+        address _market,
+        uint128 _minAssetAmountToPT,
+        uint128 _maxSingleTrade,
+        uint256 _depositLimit,
+        uint128 _depositTrigger,
+        uint48 _maxTendBaseFee,
+        uint40 _minDepositInterval,
+        string memory _name
+    ) external onlyManagement returns (address) {
         IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
@@ -129,9 +137,7 @@ contract SingleSidedPTcoreFactory {
      * @dev This is the address that will receive the performance fee.
      * @param _performanceFeeRecipient The address to set as the performance fee recipient address.
      */
-    function setPerformanceFeeRecipient(
-        address _performanceFeeRecipient
-    ) external onlyManagement {
+    function setPerformanceFeeRecipient(address _performanceFeeRecipient) external onlyManagement {
         require(_performanceFeeRecipient != address(0), "ZERO_ADDRESS");
         performanceFeeRecipient = _performanceFeeRecipient;
     }
