@@ -326,7 +326,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
     function setOracleDuration(
         uint32 _oracleDuration
     ) external onlyEmergencyAuthorized {
-        require(_oracleDuration != 0);
+        require(_oracleDuration >= 900, "duration too low");
         _checkOracle(market, _oracleDuration);
         oracleDuration = _oracleDuration;
     }
@@ -340,7 +340,11 @@ contract SingleSidedPTcore is BaseHealthCheck {
         uint128 _minAssetAmountToPT,
         uint128 _maxSingleTrade
     ) external onlyManagement {
-        require(_maxSingleTrade != type(uint128).max);
+        require(
+            _maxSingleTrade <= type(uint128).max &&
+                _minAssetAmountToPT <= type(uint128).max,
+            "too large"
+        );
         TradeParams memory _tradeParams;
         _tradeParams.minAssetAmountToPT = _minAssetAmountToPT;
         _tradeParams.maxSingleTrade = _maxSingleTrade;
@@ -380,6 +384,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
         uint40 _minDepositInterval
     ) external onlyManagement {
         require(_minDepositInterval > 0, "interval too low");
+        require(_depositTrigger <= type(uint128).max, "too large");
         tendTriggerParams.depositTrigger = _depositTrigger;
         tendTriggerParams.maxTendBaseFee = _maxTendBaseFee;
         tendTriggerParams.minDepositInterval = _minDepositInterval;
