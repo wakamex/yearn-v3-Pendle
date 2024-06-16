@@ -17,6 +17,8 @@ test-contract-gas  :; forge test --gas-report --match-contract ${contract}
 trace-contract  :; forge test -vvv --match-contract $(contract) --evm-version shanghai
 test-test  :; forge test -vv --match-test $(test)
 trace-test  :; forge test -vvv --match-test $(test)
+coverage :; forge coverage --evm-version shanghai
+coverage-report :; forge coverage --report lcov --evm-version shanghai
 
 clean  :; forge clean
 snapshot :; forge snapshot
