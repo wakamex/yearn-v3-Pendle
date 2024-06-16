@@ -44,7 +44,13 @@ contract ARBOperationEETHTest is OperationTest {
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
+        strategy = IStrategyInterface(
+            strategyFactory.newSingleSidedPTcore(
+                address(asset),
+                address(market),
+                "Strategy"
+            )
+        );
         setUpStrategy();
         factory = strategy.FACTORY();
 

@@ -42,8 +42,14 @@ contract SingleSidedPTcoreFactory {
      * @notice Deploy a new Single Sided Pendle PT Core Strategy.
      * @return . The address of the new strategy.
      */
-    function newSingleSidedPTcore(address _asset, address _market, string memory _name) external onlyManagement returns (address) {
-        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
+    function newSingleSidedPTcore(
+        address _asset,
+        address _market,
+        string memory _name
+    ) external onlyManagement returns (address) {
+        IStrategyInterface newStrategy = IStrategyInterface(
+            address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name))
+        );
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -75,7 +81,9 @@ contract SingleSidedPTcoreFactory {
         uint40 _minDepositInterval,
         string memory _name
     ) external onlyManagement returns (address) {
-        IStrategyInterface newStrategy = IStrategyInterface(address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(
+            address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name))
+        );
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -87,7 +95,11 @@ contract SingleSidedPTcoreFactory {
 
         newStrategy.setTradeParams(_minAssetAmountToPT, _maxSingleTrade);
 
-        newStrategy.setTendTriggerParams(_depositTrigger, _maxTendBaseFee, _minDepositInterval);
+        newStrategy.setTendTriggerParams(
+            _depositTrigger,
+            _maxTendBaseFee,
+            _minDepositInterval
+        );
 
         if (_depositLimit != type(uint256).max) {
             newStrategy.setDepositLimit(_depositLimit);
@@ -105,7 +117,9 @@ contract SingleSidedPTcoreFactory {
      * @param _asset asset address
      * @return strategy address
      */
-    function getStrategyByAsset(address _asset) external view returns (address) {
+    function getStrategyByAsset(
+        address _asset
+    ) external view returns (address) {
         return assetToStrategy[_asset];
     }
 
@@ -113,12 +127,17 @@ contract SingleSidedPTcoreFactory {
      * @notice Check if a strategy has been deployed by this Factory
      * @param _strategy strategy address
      */
-    function isDeployedStrategy(address _strategy) external view returns (bool) {
+    function isDeployedStrategy(
+        address _strategy
+    ) external view returns (bool) {
         address _asset = IStrategyInterface(_strategy).asset();
         return assetToStrategy[_asset] == _strategy;
     }
 
-    function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
+    function setStrategyByAsset(
+        address _asset,
+        address _strategy
+    ) external onlyManagement {
         assetToStrategy[_asset] = _strategy;
     }
 
@@ -137,7 +156,9 @@ contract SingleSidedPTcoreFactory {
      * @dev This is the address that will receive the performance fee.
      * @param _performanceFeeRecipient The address to set as the performance fee recipient address.
      */
-    function setPerformanceFeeRecipient(address _performanceFeeRecipient) external onlyManagement {
+    function setPerformanceFeeRecipient(
+        address _performanceFeeRecipient
+    ) external onlyManagement {
         require(_performanceFeeRecipient != address(0), "ZERO_ADDRESS");
         performanceFeeRecipient = _performanceFeeRecipient;
     }

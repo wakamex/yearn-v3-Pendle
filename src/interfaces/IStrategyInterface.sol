@@ -4,7 +4,9 @@ pragma solidity 0.8.18;
 import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 interface IStrategyInterface is IStrategy {
-    function reportTrigger(address _strategy) external view returns (bool, bytes memory);
+    function reportTrigger(
+        address _strategy
+    ) external view returns (bool, bytes memory);
 
     function sweep(address _token) external;
 
@@ -14,11 +16,23 @@ interface IStrategyInterface is IStrategy {
     function setProfitLimitRatio(uint256) external;
     function setLossLimitRatio(uint256) external;
     function setDoHealthCheck(bool) external;
-    function setRouterParams(uint256 _guessMin, uint256 _guessMax, uint256 _maxIteration, uint256 _eps) external;
+    function setRouterParams(
+        uint256 _guessMin,
+        uint256 _guessMax,
+        uint256 _maxIteration,
+        uint256 _eps
+    ) external;
 
     function isExpired() external view returns (bool);
-    function setTradeParams(uint128 _minAssetAmountToPT, uint128 _maxSingleTrade) external;
-    function setTendTriggerParams(uint128 _depositTrigger, uint48 _maxTendBaseFee, uint40 _minDepositInterval) external;
+    function setTradeParams(
+        uint128 _minAssetAmountToPT,
+        uint128 _maxSingleTrade
+    ) external;
+    function setTendTriggerParams(
+        uint128 _depositTrigger,
+        uint48 _maxTendBaseFee,
+        uint40 _minDepositInterval
+    ) external;
 
     function setDepositLimit(uint256) external;
     function setDepositTrigger(uint256) external;

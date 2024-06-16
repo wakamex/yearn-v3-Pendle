@@ -2,7 +2,11 @@
 pragma solidity 0.8.18;
 
 interface IStrategyFactoryInterface {
-    function newSingleSidedPTcore(address _asset, address _market, string memory _name) external returns (address);
+    function newSingleSidedPTcore(
+        address _asset,
+        address _market,
+        string memory _name
+    ) external returns (address);
 
     function management() external view returns (address);
 

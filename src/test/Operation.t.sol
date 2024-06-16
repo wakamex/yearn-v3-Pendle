@@ -20,7 +20,9 @@ contract OperationTest is Setup {
         // TODO: add additional check on strat params
     }
 
-    function test_operation_NoFees(uint256 _amount /*, uint8 _profitFactor*/ ) public {
+    function test_operation_NoFees(
+        uint256 _amount /*, uint8 _profitFactor*/
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, 5_00));
@@ -65,14 +67,17 @@ contract OperationTest is Setup {
         vm.prank(user);
         strategy.redeem(_amount, user, user);
 
-        assertGe(asset.balanceOf(user), (balanceBefore + _amount) * expectedMaxLossBPS / MAX_BPS, "!final balance");
+        assertGe(
+            asset.balanceOf(user),
+            ((balanceBefore + _amount) * expectedMaxLossBPS) / MAX_BPS,
+            "!final balance"
+        );
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_profitableReport_expectedFees(uint256 _amount)
-        /* ,uint8 _profitFactor*/
-        public
-    {
+    function test_profitableReport_expectedFees(
+        uint256 _amount /* ,uint8 _profitFactor*/
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, 1_00));
@@ -103,7 +108,7 @@ contract OperationTest is Setup {
         checkStrategyInvariants(strategy);
 
         // Check return Values
-        assertGe(profit, toAirdrop * 90_00 / MAX_BPS, "!profit");
+        assertGe(profit, (toAirdrop * 90_00) / MAX_BPS, "!profit");
         if (forceProfit == false) {
             assertGt(profit, 0, "!profit");
         }
@@ -121,23 +126,34 @@ contract OperationTest is Setup {
 
         //uint256 expectedFees = (profit * strategy.performanceFee()) / MAX_BPS;
 
-        assertGe(asset.balanceOf(user), (balanceBefore + _amount) * expectedMaxLossBPS / MAX_BPS, "!final balance");
+        assertGe(
+            asset.balanceOf(user),
+            ((balanceBefore + _amount) * expectedMaxLossBPS) / MAX_BPS,
+            "!final balance"
+        );
 
         uint256 strategistShares = strategy.balanceOf(performanceFeeRecipient);
         if (strategistShares > 0) {
             // empty complete strategy
             vm.prank(performanceFeeRecipient);
-            strategy.redeem(strategistShares, performanceFeeRecipient, performanceFeeRecipient);
-            assertGt(asset.balanceOf(performanceFeeRecipient), 0, "fees too low!");
+            strategy.redeem(
+                strategistShares,
+                performanceFeeRecipient,
+                performanceFeeRecipient
+            );
+            assertGt(
+                asset.balanceOf(performanceFeeRecipient),
+                0,
+                "fees too low!"
+            );
         }
 
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_profitableReport_expectedProfit(uint256 _amount)
-        /* ,uint8 _profitFactor*/
-        public
-    {
+    function test_profitableReport_expectedProfit(
+        uint256 _amount /* ,uint8 _profitFactor*/
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 1_00, 20_00));
@@ -171,7 +187,7 @@ contract OperationTest is Setup {
         checkStrategyInvariants(strategy);
 
         // Check return Values
-        assertGe(profit, toAirdrop * expectedMaxLossBPS / MAX_BPS, "!profit");
+        assertGe(profit, (toAirdrop * expectedMaxLossBPS) / MAX_BPS, "!profit");
         assertEq(loss, 0, "!loss");
 
         skip(strategy.profitMaxUnlockTime());
@@ -184,17 +200,31 @@ contract OperationTest is Setup {
         vm.prank(user);
         strategy.redeem(_amount, user, user);
 
-        assertGe(asset.balanceOf(user), (balanceBefore + _amount) * expectedMaxLossBPS / MAX_BPS, "!final balance");
+        assertGe(
+            asset.balanceOf(user),
+            ((balanceBefore + _amount) * expectedMaxLossBPS) / MAX_BPS,
+            "!final balance"
+        );
 
         uint256 shares = strategy.balanceOf(performanceFeeRecipient);
         vm.prank(performanceFeeRecipient);
-        strategy.redeem(shares, performanceFeeRecipient, performanceFeeRecipient);
-        assertGe(asset.balanceOf(performanceFeeRecipient), expectedProfit * expectedMaxLossBPS / MAX_BPS, "!perf fee out");
+        strategy.redeem(
+            shares,
+            performanceFeeRecipient,
+            performanceFeeRecipient
+        );
+        assertGe(
+            asset.balanceOf(performanceFeeRecipient),
+            (expectedProfit * expectedMaxLossBPS) / MAX_BPS,
+            "!perf fee out"
+        );
 
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }
 
-    function test_emergencyWithdrawAll(uint256 _amount /* ,uint8 _profitFactor*/ ) public {
+    function test_emergencyWithdrawAll(
+        uint256 _amount /* ,uint8 _profitFactor*/
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         uint8 _profitFactor = 2_00;
         //_profitFactor = uint8(bound(uint256(_profitFactor), 100, MAX_BPS));
@@ -229,7 +259,11 @@ contract OperationTest is Setup {
         strategy.shutdownStrategy();
         vm.prank(management);
         strategy.emergencyWithdraw(type(uint256).max);
-        assertGe(asset.balanceOf(address(strategy)), (_amount + toAirdrop) * expectedMaxLossBPS / MAX_BPS, "!all in asset");
+        assertGe(
+            asset.balanceOf(address(strategy)),
+            ((_amount + toAirdrop) * expectedMaxLossBPS) / MAX_BPS,
+            "!all in asset"
+        );
         checkStrategyInvariants(strategy);
 
         vm.prank(management);
@@ -237,7 +271,7 @@ contract OperationTest is Setup {
 
         vm.prank(keeper);
         (profit, loss) = strategy.report();
-        assertGt(_amount * 5_00 / MAX_BPS, 0, "!loss");
+        assertGt((_amount * 5_00) / MAX_BPS, 0, "!loss");
 
         // Unlock Profits
         skip(strategy.profitMaxUnlockTime());
@@ -245,7 +279,11 @@ contract OperationTest is Setup {
         vm.prank(user);
         strategy.redeem(_amount, user, user);
         // verify users earned profit
-        assertGt(asset.balanceOf(user), _amount * expectedMaxLossBPS / MAX_BPS, "!final balance");
+        assertGt(
+            asset.balanceOf(user),
+            (_amount * expectedMaxLossBPS) / MAX_BPS,
+            "!final balance"
+        );
 
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
     }

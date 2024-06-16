@@ -9,6 +9,13 @@ interface IPendleStaking {
 interface IMarketDepositHelper {
     function depositMarket(address market, uint256 amount) external;
     function withdrawMarket(address market, uint256 amount) external;
-    function withdrawMarketWithClaim(address market, uint256 amount, bool doClaim) external;
-    function balance(address market, address user) external view returns (uint256);
+    function withdrawMarketWithClaim(
+        address market,
+        uint256 amount,
+        bool doClaim
+    ) external;
+    function balance(
+        address market,
+        address user
+    ) external view returns (uint256);
 }

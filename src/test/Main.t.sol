@@ -37,8 +37,15 @@ contract MainTest is Setup {
         depositIntoStrategy(strategy, user, _amount);
         console.log("deposit done");
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
-        assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
-        console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
+        assertEq(
+            strategy.totalAssets(),
+            _amount,
+            "strategy.totalAssets() != _amount after deposit"
+        );
+        console.log(
+            "strategy.totalAssets() after deposit: ",
+            strategy.totalAssets()
+        );
         console.log("assetBalance: ", strategy.balanceOfAsset());
 
         // Report profit / loss
@@ -76,17 +83,29 @@ contract MainTest is Setup {
         skip(strategy.profitMaxUnlockTime());
 
         // Withdraw all funds
-        console.log("performanceFeeReceipient: ", strategy.balanceOf(performanceFeeRecipient));
-        console.log("redeem strategy.totalAssets() before redeem: ", strategy.totalAssets());
+        console.log(
+            "performanceFeeReceipient: ",
+            strategy.balanceOf(performanceFeeRecipient)
+        );
+        console.log(
+            "redeem strategy.totalAssets() before redeem: ",
+            strategy.totalAssets()
+        );
         console.log("totalSupply before redeem: ", strategy.totalSupply());
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-        console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
+        console.log(
+            "redeem strategy.totalAssets() after redeem: ",
+            strategy.totalAssets()
+        );
 
         checkStrategyInvariants(strategy);
 
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
-        console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
+        console.log(
+            "asset balance of strategy: ",
+            asset.balanceOf(address(strategy))
+        );
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
 
         assertEq(strategy.totalAssets(), 0, "not 0 at end!");
@@ -109,8 +128,15 @@ contract MainTest is Setup {
         depositIntoStrategy(strategy, user, _amount);
         console.log("deposit done");
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
-        assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
-        console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
+        assertEq(
+            strategy.totalAssets(),
+            _amount,
+            "strategy.totalAssets() != _amount after deposit"
+        );
+        console.log(
+            "strategy.totalAssets() after deposit: ",
+            strategy.totalAssets()
+        );
         console.log("assetBalance: ", strategy.balanceOfAsset());
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
@@ -130,7 +156,10 @@ contract MainTest is Setup {
         require(strategy.isExpired() == true, "not expired");
 
         vm.prank(GOV);
-        strategy.rolloverMaturity(0x7d372819240D14fB477f17b964f95F33BeB4c704, 0); //EETH SEPT Maturity
+        strategy.rolloverMaturity(
+            0x7d372819240D14fB477f17b964f95F33BeB4c704,
+            0
+        ); //EETH SEPT Maturity
 
         toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);
@@ -146,16 +175,28 @@ contract MainTest is Setup {
         skip(strategy.profitMaxUnlockTime());
 
         // Withdraw all funds
-        console.log("performanceFeeReceipient: ", strategy.balanceOf(performanceFeeRecipient));
-        console.log("redeem strategy.totalAssets() before redeem: ", strategy.totalAssets());
+        console.log(
+            "performanceFeeReceipient: ",
+            strategy.balanceOf(performanceFeeRecipient)
+        );
+        console.log(
+            "redeem strategy.totalAssets() before redeem: ",
+            strategy.totalAssets()
+        );
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-        console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
+        console.log(
+            "redeem strategy.totalAssets() after redeem: ",
+            strategy.totalAssets()
+        );
 
         checkStrategyInvariants(strategy);
 
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
-        console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
+        console.log(
+            "asset balance of strategy: ",
+            asset.balanceOf(address(strategy))
+        );
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }
 
@@ -176,8 +217,15 @@ contract MainTest is Setup {
         depositIntoStrategy(strategy, user, _amount);
         console.log("deposit done");
         assertEq(asset.balanceOf(user), 0, "user balance after deposit =! 0");
-        assertEq(strategy.totalAssets(), _amount, "strategy.totalAssets() != _amount after deposit");
-        console.log("strategy.totalAssets() after deposit: ", strategy.totalAssets());
+        assertEq(
+            strategy.totalAssets(),
+            _amount,
+            "strategy.totalAssets() != _amount after deposit"
+        );
+        console.log(
+            "strategy.totalAssets() after deposit: ",
+            strategy.totalAssets()
+        );
         console.log("assetBalance: ", strategy.balanceOfAsset());
 
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
@@ -196,16 +244,28 @@ contract MainTest is Setup {
         skip(10000 days);
 
         // Withdraw all funds
-        console.log("performanceFeeReceipient: ", strategy.balanceOf(performanceFeeRecipient));
-        console.log("redeem strategy.totalAssets() before redeem: ", strategy.totalAssets());
+        console.log(
+            "performanceFeeReceipient: ",
+            strategy.balanceOf(performanceFeeRecipient)
+        );
+        console.log(
+            "redeem strategy.totalAssets() before redeem: ",
+            strategy.totalAssets()
+        );
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-        console.log("redeem strategy.totalAssets() after redeem: ", strategy.totalAssets());
+        console.log(
+            "redeem strategy.totalAssets() after redeem: ",
+            strategy.totalAssets()
+        );
 
         checkStrategyInvariants(strategy);
 
         console.log("assetBalance of strategy: ", strategy.balanceOfAsset());
-        console.log("asset balance of strategy: ", asset.balanceOf(address(strategy)));
+        console.log(
+            "asset balance of strategy: ",
+            asset.balanceOf(address(strategy))
+        );
         console.log("asset.balanceOf(user) at end: ", asset.balanceOf(user));
     }
 }
