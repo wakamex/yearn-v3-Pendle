@@ -80,7 +80,8 @@ contract Setup is ExtendedTest, IEvents {
     //uint256 public profitMaxUnlockTime = 10 days;
     uint256 public profitMaxUnlockTime = 10 days;
 
-    bytes32 public constant BASE_STRATEGY_STORAGE = bytes32(uint256(keccak256("yearn.base.strategy.storage")) - 1);
+    bytes32 public constant BASE_STRATEGY_STORAGE =
+        bytes32(uint256(keccak256("yearn.base.strategy.storage")) - 1);
 
     function setUp() public virtual {
         uint256 mainnetFork = vm.createFork("mainnet");
@@ -129,7 +130,13 @@ contract Setup is ExtendedTest, IEvents {
 
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newSingleSidedPTcore(address(asset), address(market), "Strategy"));
+        strategy = IStrategyInterface(
+            strategyFactory.newSingleSidedPTcore(
+                address(asset),
+                address(market),
+                "Strategy"
+            )
+        );
         setUpStrategy();
 
         factory = strategy.FACTORY();
@@ -145,8 +152,18 @@ contract Setup is ExtendedTest, IEvents {
     }
 
     function setUpStrategyFactory() public returns (IStrategyFactoryInterface) {
-        IStrategyFactoryInterface _factory =
-            IStrategyFactoryInterface(address(new SingleSidedPTcoreFactory(management, performanceFeeRecipient, keeper, oracle, GOV, GOV)));
+        IStrategyFactoryInterface _factory = IStrategyFactoryInterface(
+            address(
+                new SingleSidedPTcoreFactory(
+                    management,
+                    performanceFeeRecipient,
+                    keeper,
+                    oracle,
+                    GOV,
+                    GOV
+                )
+            )
+        );
         return _factory;
     }
 
@@ -161,11 +178,20 @@ contract Setup is ExtendedTest, IEvents {
         vm.stopPrank();
     }
 
-    function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
+    function depositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount
+    ) public {
         depositIntoStrategy(_strategy, _user, _amount, asset);
     }
 
-    function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount, ERC20 _asset) public {
+    function depositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount,
+        ERC20 _asset
+    ) public {
         vm.prank(_user);
         _asset.forceApprove(address(_strategy), _amount);
 
@@ -173,26 +199,50 @@ contract Setup is ExtendedTest, IEvents {
         _strategy.deposit(_amount, _user);
     }
 
-    function mintAndDepositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
+    function mintAndDepositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount
+    ) public {
         mintAndDepositIntoStrategy(_strategy, _user, _amount, asset);
     }
 
-    function mintAndDepositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount, ERC20 _asset) public {
+    function mintAndDepositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount,
+        ERC20 _asset
+    ) public {
         airdrop(_asset, _user, _amount);
         depositIntoStrategy(_strategy, _user, _amount, _asset);
     }
 
     // For checking the amounts in the strategy
-    function checkStrategyTotals(IStrategyInterface _strategy, uint256 _totalAssets, uint256 _totalDebt, uint256 _totalIdle) public {
+    function checkStrategyTotals(
+        IStrategyInterface _strategy,
+        uint256 _totalAssets,
+        uint256 _totalDebt,
+        uint256 _totalIdle
+    ) public {
         assertEq(_strategy.totalAssets(), _totalAssets, "!totalAssets");
         assertEq(asset.balanceOf(address(_strategy)), _totalIdle, "!totalIdle");
         assertEq(_totalAssets, _totalDebt + _totalIdle, "!Added");
     }
 
     function checkStrategyInvariants(IStrategyInterface _strategy) public {
-        (address SY, /*address PT*/, address YT) = IPendleMarket(address(market)).readTokens();
-        assertLe(ERC20(SY).balanceOf(address(_strategy)), 10, "SY balance > DUST");
-        assertLe(ERC20(YT).balanceOf(address(_strategy)), 10, "YT balance > DUST");
+        (address SY /*address PT*/, , address YT) = IPendleMarket(
+            address(market)
+        ).readTokens();
+        assertLe(
+            ERC20(SY).balanceOf(address(_strategy)),
+            10,
+            "SY balance > DUST"
+        );
+        assertLe(
+            ERC20(YT).balanceOf(address(_strategy)),
+            10,
+            "YT balance > DUST"
+        );
     }
 
     function airdrop(ERC20 _asset, address _to, uint256 _amount) public {
@@ -230,7 +280,9 @@ contract Setup is ExtendedTest, IEvents {
         // to maintain the same variables packed in the slot
 
         // profitMaxUnlock time is a uint32 at the most significant spot.
-        bytes32 data = bytes4(uint32(IStrategyInterface(_strategy).profitMaxUnlockTime()));
+        bytes32 data = bytes4(
+            uint32(IStrategyInterface(_strategy).profitMaxUnlockTime())
+        );
         // Free up space for the uint16 of performancFee
         data = data >> 16;
         // Store 0 in the performance fee spot.
@@ -238,7 +290,9 @@ contract Setup is ExtendedTest, IEvents {
         // Shit 160 bits for an address
         data = data >> 160;
         // Store the strategies peformance fee recipient
-        data |= bytes20(uint160(IStrategyInterface(_strategy).performanceFeeRecipient()));
+        data |= bytes20(
+            uint160(IStrategyInterface(_strategy).performanceFeeRecipient())
+        );
         // Shift the remainder of padding.
         data = data >> 48;
 
@@ -246,7 +300,11 @@ contract Setup is ExtendedTest, IEvents {
         vm.store(_strategy, slot, data);
     }
 
-    function _strategyStorage() internal pure returns (TokenizedStrategy.StrategyData storage S) {
+    function _strategyStorage()
+        internal
+        pure
+        returns (TokenizedStrategy.StrategyData storage S)
+    {
         // Since STORAGE_SLOT is a constant, we have to put a variable
         // on the stack to access it from an inline assembly block.
         bytes32 slot = BASE_STRATEGY_STORAGE;

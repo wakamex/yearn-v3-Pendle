@@ -26,7 +26,14 @@ interface IQuoter {
     /// @return sqrtPriceX96After The sqrt price of the pool after the swap
     /// @return initializedTicksCrossed The number of initialized ticks that the swap crossed
     /// @return gasEstimate The estimate of the gas that the swap consumes
-    function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
+    function quoteExactInputSingle(
+        QuoteExactInputSingleParams memory params
+    )
         external
-        returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
+        returns (
+            uint256 amountOut,
+            uint160 sqrtPriceX96After,
+            uint32 initializedTicksCrossed,
+            uint256 gasEstimate
+        );
 }

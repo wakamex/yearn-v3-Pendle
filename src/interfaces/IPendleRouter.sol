@@ -8,7 +8,7 @@ interface IPendleRouter {
         uint256 guessOffchain; // pass 0 in to skip this variable
         uint256 maxIteration; // every iteration, the diff between guessMin and guessMax will be divided by 2
         uint256 eps; // the max eps between the returned result & the correct result, base 1e18. Normally this number will be set
-            // to 1e15 (1e18/1000 = 0.1%)
+        // to 1e15 (1e18/1000 = 0.1%)
     }
 
     struct LimitOrderData {
@@ -56,9 +56,18 @@ interface IPendleRouter {
         LimitOrderData calldata limit
     ) external returns (uint256 netPtOut, uint256 netSyFee);
 
-    function swapExactPtForSy(address receiver, address market, uint256 exactPtIn, uint256 minSyOut, LimitOrderData calldata limit)
-        external
-        returns (uint256 netSyOut, uint256 netSyFee);
+    function swapExactPtForSy(
+        address receiver,
+        address market,
+        uint256 exactPtIn,
+        uint256 minSyOut,
+        LimitOrderData calldata limit
+    ) external returns (uint256 netSyOut, uint256 netSyFee);
 
-    function redeemPyToSy(address receiver, address YT, uint256 netPyIn, uint256 minSyOut) external returns (uint256 netSyOut);
+    function redeemPyToSy(
+        address receiver,
+        address YT,
+        uint256 netPyIn,
+        uint256 minSyOut
+    ) external returns (uint256 netSyOut);
 }
