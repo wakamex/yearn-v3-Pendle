@@ -93,13 +93,13 @@ contract SingleSidedPTcoreFactory {
 
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
-        newStrategy.setTradeParams(_minAssetAmountToPT, _maxSingleTrade);
-
         newStrategy.setTendTriggerParams(
             _depositTrigger,
             _maxTendBaseFee,
             _minDepositInterval
         );
+
+        newStrategy.setTradeParams(_minAssetAmountToPT, _maxSingleTrade);
 
         if (_depositLimit != type(uint256).max) {
             newStrategy.setDepositLimit(_depositLimit);

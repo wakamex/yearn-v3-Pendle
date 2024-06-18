@@ -134,7 +134,6 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _invest(uint256 _amount) internal {
-        if (_amount == 0) return;
         //asset --> SY
         ISY(SY).deposit(address(this), address(asset), _amount, 0);
         _amount = ERC20(SY).balanceOf(address(this));
@@ -236,11 +235,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
     }
 
     function _tend(uint256) internal override {
-        uint256 assetBalance = _balanceOfAsset();
-        TradeParams memory _tradeParams = tradeParams;
-        if (assetBalance > _tradeParams.minAssetAmountToPT) {
-            _invest(_min(assetBalance, _tradeParams.maxSingleTrade));
-        }
+        _invest(_min(_balanceOfAsset(), tradeParams.maxSingleTrade));
     }
 
     function _tendTrigger() internal view override returns (bool _shouldTend) {
@@ -345,6 +340,8 @@ contract SingleSidedPTcore is BaseHealthCheck {
                 _minAssetAmountToPT <= type(uint128).max,
             "too large"
         );
+        require(_maxSingleTrade >= _minAssetAmountToPT, "wrong order");
+        require(tendTriggerParams.depositTrigger >= _minAssetAmountToPT, "minAsset too large");
         TradeParams memory _tradeParams;
         _tradeParams.minAssetAmountToPT = _minAssetAmountToPT;
         _tradeParams.maxSingleTrade = _maxSingleTrade;
@@ -385,6 +382,7 @@ contract SingleSidedPTcore is BaseHealthCheck {
     ) external onlyManagement {
         require(_minDepositInterval > 0, "interval too low");
         require(_depositTrigger <= type(uint128).max, "too large");
+        require(_depositTrigger >= tradeParams.minAssetAmountToPT, "trigger too small");
         tendTriggerParams.depositTrigger = _depositTrigger;
         tendTriggerParams.maxTendBaseFee = _maxTendBaseFee;
         tendTriggerParams.minDepositInterval = _minDepositInterval;
