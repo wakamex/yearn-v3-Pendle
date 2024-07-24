@@ -13,10 +13,10 @@ contract ARBOperationEETHTest is OperationTest {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
-        oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
         asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WEETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
-        market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //PT-wstETH-26JUN25/SY-wstETH Market
+        market = ERC20(0xf9F9779d8fF604732EBA9AD345E6A27EF5c2a9d6); //PT-wstETH-26JUN25/SY-wstETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
         redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //WEETH
         feeRedeemTokenToBase = 100;

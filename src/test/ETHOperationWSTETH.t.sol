@@ -13,7 +13,7 @@ contract ETHOperationWSTETHTest is OperationTest {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
-        oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
         asset = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0); //WSTETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-stETH-25DEC25/SY-stETH Market --> asset
         market = ERC20(0xC374f7eC85F8C7DE3207a10bB1978bA104bdA3B2); //PT-stETH-25DEC25/SY-stETH Market

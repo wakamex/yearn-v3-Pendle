@@ -13,7 +13,7 @@ contract ARBOperationWSTETHTest is OperationTest {
         //super.setUp();
         uint256 arbitrumFork = vm.createFork("arbitrum");
         vm.selectFork(arbitrumFork);
-        oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
         asset = ERC20(0x5979D7b546E38E414F7E9822514be443A4800529);
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
         market = ERC20(0x08a152834de126d2ef83D612ff36e4523FD0017F); //PT-wstETH-26JUN25/SY-wstETH Market

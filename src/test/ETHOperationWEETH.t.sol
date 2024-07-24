@@ -13,10 +13,10 @@ contract ETHOperationWEETHTest is OperationTest {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
-        oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
         asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //weETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
-        market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //PT-eETH-27JUN24 /SY-weETH Market
+        market = ERC20(0xC8eDd52D0502Aa8b4D5C77361D4B3D300e8fC81c); //PT-eETH-27JUN24 /SY-weETH Market
         //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
         redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
         //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)

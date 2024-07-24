@@ -98,13 +98,13 @@ contract Setup is ExtendedTest, IEvents {
         //MAINNET:
         if (vm.activeFork() == mainnetFork) {
             asset = ERC20(0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee); //WeETH
-            market = ERC20(0xF32e58F92e60f4b0A37A69b95d642A471365EAe8); //eETH Pool 27 Jun 2024
+            market = ERC20(0xC8eDd52D0502Aa8b4D5C77361D4B3D300e8fC81c); //eETH Pool SEP 2024
             redeemToken = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee; //weETH
             feeRedeemTokenToBase = 500;
             base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
             feeBaseToAsset = 100;
 
-            oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
+            oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
             GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
             //chainlinkOracle = 0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22; //weETH/ETH //not necessary since WETH is valid depositToken
             chainlinkHeartbeat = 1e30;
@@ -112,13 +112,13 @@ contract Setup is ExtendedTest, IEvents {
         //Arbitrum:
         if (vm.activeFork() == arbitrumFork) {
             asset = ERC20(0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe); //WETH
-            market = ERC20(0x952083cde7aaa11AB8449057F7de23A970AA8472); //eETH Pool 27 Jun 2024
+            market = ERC20(0xf9F9779d8fF604732EBA9AD345E6A27EF5c2a9d6); //eETH Pool 26 Sep 2024
             redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //weETH
             feeRedeemTokenToBase = 100;
             base = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
             feeBaseToAsset = 100;
 
-            oracle = 0x1Fd95db7B7C0067De8D45C0cb35D59796adfD187;
+            oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
             GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
             chainlinkOracle = 0xE141425bc1594b8039De6390db1cDaf4397EA22b; //weETH/ETH
             chainlinkHeartbeat = 1e30;

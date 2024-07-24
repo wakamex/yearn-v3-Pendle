@@ -8,17 +8,17 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationSDAITest is OperationTest {
+contract ARBOperationMPENDLETest is OperationTest {
     function setUp() public override {
         //super.setUp();
-        uint256 mainnetFork = vm.createFork("mainnet");
-        vm.selectFork(mainnetFork);
+        uint256 arbitrumFork = vm.createFork("arbitrum");
+        vm.selectFork(arbitrumFork);
         oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
-        asset = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); //ezETH
+        asset = ERC20(0xB688BA096b7Bb75d7841e47163Cd12D18B36A5bF); //ezETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
-        market = ERC20(0x93a82F3873e5b4fF81902663C43286d662F6721C); //PT-ezETH-26 Dec 2024
+        market = ERC20(0xf617792eA9Dceb2208F4C440258B21d2f3FdB9A3); //PT-ezETH-26 Dec 2024
 
-        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
 
         // Set decimals
         decimals = asset.decimals();

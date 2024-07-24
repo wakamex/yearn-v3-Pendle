@@ -8,17 +8,36 @@ import {Setup} from "./utils/Setup.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStrategyInterface} from "../interfaces/IStrategyInterface.sol";
 
-contract ETHOperationSDAITest is OperationTest {
+contract ARBOperationEETHTest is OperationTest {
     function setUp() public override {
         //super.setUp();
-        uint256 mainnetFork = vm.createFork("mainnet");
-        vm.selectFork(mainnetFork);
+        uint256 arbitrumFork = vm.createFork("arbitrum");
+        vm.selectFork(arbitrumFork);
         oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
-        asset = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); //ezETH
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
-        market = ERC20(0x93a82F3873e5b4fF81902663C43286d662F6721C); //PT-ezETH-26 Dec 2024
+        asset = ERC20(0xd85E038593d7A098614721EaE955EC2022B9B91B); //WEETH
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-wstETH-26JUN25/SY-wstETH Market --> asset
+        market = ERC20(0x99Ed4F0Ab6524d26B31D0aEa087eBe20D5949e0f); //PT-wstETH-26JUN25/SY-wstETH Market
+        //redeemToken from asset --> readTokens --> SY --> getTokensIn --> redeemToken
+        redeemToken = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe; //WEETH
+        feeRedeemTokenToBase = 100;
+        feeRedeemTokenToBase = 100;
+        feeBaseToAsset = 100;
 
-        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+        //ARB rewards:
+        additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+        feeAdditionalReward1toBase = 500;
+
+        //PNP rewards:
+        additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
+        feeAdditionalReward2toBase = 10000;
+
+        //chain specific:
+        base = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe;
+        PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+        feePENDLEtoBase = 3000;
+
+        pendleStaking = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
+        GOV = 0x6Ba1734209a53a6E63C39D4e36612cc856A34D56;
 
         // Set decimals
         decimals = asset.decimals();

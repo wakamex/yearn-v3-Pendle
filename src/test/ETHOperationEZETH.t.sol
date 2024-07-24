@@ -13,7 +13,7 @@ contract ETHOperationEZETHTest is OperationTest {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
-        oracle = 0x66a1096C6366b2529274dF4f5D8247827fe4CEA8;
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
         asset = ERC20(0xbf5495Efe5DB9ce00f80364C8B423567e58d2110); //ezETH
         //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
         market = ERC20(0xD8F12bCDE578c653014F27379a6114F67F0e445f); //PT-ezETH-26 Dec 2024

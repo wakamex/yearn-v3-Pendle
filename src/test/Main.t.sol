@@ -152,14 +152,14 @@ contract MainTest is Setup {
 
         skip(strategy.profitMaxUnlockTime());
 
-        skip(45 days);
+        skip(70 days);
         require(strategy.isExpired() == true, "not expired");
 
         vm.prank(GOV);
         strategy.rolloverMaturity(
             0x7d372819240D14fB477f17b964f95F33BeB4c704,
             0
-        ); //EETH SEPT Maturity
+        ); //EETH DEC Maturity
 
         toAirdrop = (_amount * _profitFactor) / MAX_BPS;
         console.log("toAirdrop: ", toAirdrop);
