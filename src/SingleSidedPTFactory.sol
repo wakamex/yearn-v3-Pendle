@@ -1,38 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.18;
 
-import {PendleLPCompounder} from "./PendleLPCompounder.sol";
+import {SingleSidedPTcore} from "./SingleSidedPT.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
-contract PendleLPCompounderFactory {
-    event NewPendleLPCompounder(address indexed strategy, address indexed asset);
+contract SingleSidedPTcoreFactory {
+    event NewSingleSidedPTcore(address indexed strategy, address indexed asset);
 
     address public management;
     address public performanceFeeRecipient;
     address public keeper;
 
-    address internal immutable pendleStaking;
-    address internal immutable PENDLE;
-    address internal immutable emergencyAdmin;
-    address internal immutable GOV;
-
+    address public immutable oracle;
+    address public immutable emergencyAdmin;
+    address public immutable GOV;
 
     mapping(address => address) public assetToStrategy;
 
     constructor(
         address _management,
         address _peformanceFeeRecipient,
-        address _keeper, 
-        address _pendleStaking,
-        address _PENDLE,
+        address _keeper,
+        address _oracle,
         address _emergencyAdmin,
         address _GOV
     ) {
         management = _management;
         performanceFeeRecipient = _peformanceFeeRecipient;
         keeper = _keeper;
-        pendleStaking = _pendleStaking;
-        PENDLE = _PENDLE;
+        oracle = _oracle;
         emergencyAdmin = _emergencyAdmin;
         GOV = _GOV;
     }
@@ -43,19 +39,17 @@ contract PendleLPCompounderFactory {
     }
 
     /**
-     * @notice Deploy a new Gamma Stable LP Compounder Strategy.
-     * @return . The address of the new lender.
+     * @notice Deploy a new Single Sided Pendle PT Core Strategy.
+     * @return . The address of the new strategy.
      */
-    function newPendleLPCompounder(
+    function newSingleSidedPTcore(
         address _asset,
-        uint24 _feePENDLEtoBase, 
-        address _base, 
-        uint24 _feeBaseToTargetToken, 
-        address _targetToken,
+        address _market,
         string memory _name
     ) external onlyManagement returns (address) {
-
-        IStrategyInterface newStrategy = IStrategyInterface(address(new PendleLPCompounder(_asset, pendleStaking, PENDLE, _feePENDLEtoBase, _base, _feeBaseToTargetToken, _targetToken, GOV, _name)));
+        IStrategyInterface newStrategy = IStrategyInterface(
+            address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name))
+        );
 
         newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -65,7 +59,7 @@ contract PendleLPCompounderFactory {
 
         newStrategy.setEmergencyAdmin(emergencyAdmin);
 
-        emit NewPendleLPCompounder(address(newStrategy), _asset);
+        emit NewSingleSidedPTcore(address(newStrategy), _asset);
 
         assetToStrategy[_asset] = address(newStrategy);
 
@@ -73,11 +67,59 @@ contract PendleLPCompounderFactory {
     }
 
     /**
-     * @notice Retrieve the address of a strategy by LP address
-     * @param _asset LP address
+     * @notice Deploy a new Single Sided Pendle PT Strategy.
+     * @return . The address of the new strategy.
+     */
+    function newSingleSidedPTcore(
+        address _asset,
+        address _market,
+        uint128 _minAssetAmountToPT,
+        uint128 _maxSingleTrade,
+        uint256 _depositLimit,
+        uint128 _depositTrigger,
+        uint48 _maxTendBaseFee,
+        uint40 _minDepositInterval,
+        string memory _name
+    ) external onlyManagement returns (address) {
+        IStrategyInterface newStrategy = IStrategyInterface(
+            address(new SingleSidedPTcore(_asset, _market, oracle, GOV, _name))
+        );
+
+        newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
+
+        newStrategy.setKeeper(keeper);
+
+        newStrategy.setPendingManagement(management);
+
+        newStrategy.setEmergencyAdmin(emergencyAdmin);
+
+        newStrategy.setTendTriggerParams(
+            _depositTrigger,
+            _maxTendBaseFee,
+            _minDepositInterval
+        );
+
+        newStrategy.setTradeParams(_minAssetAmountToPT, _maxSingleTrade);
+
+        if (_depositLimit != type(uint256).max) {
+            newStrategy.setDepositLimit(_depositLimit);
+        }
+
+        emit NewSingleSidedPTcore(address(newStrategy), _asset);
+
+        assetToStrategy[_asset] = address(newStrategy);
+
+        return address(newStrategy);
+    }
+
+    /**
+     * @notice Retrieve the address of a strategy by asset address
+     * @param _asset asset address
      * @return strategy address
      */
-    function getStrategyByAsset(address _asset) external view returns (address) {
+    function getStrategyByAsset(
+        address _asset
+    ) external view returns (address) {
         return assetToStrategy[_asset];
     }
 
@@ -85,13 +127,17 @@ contract PendleLPCompounderFactory {
      * @notice Check if a strategy has been deployed by this Factory
      * @param _strategy strategy address
      */
-    function isDeployedStrategy(address _strategy) external view returns (bool) {
+    function isDeployedStrategy(
+        address _strategy
+    ) external view returns (bool) {
         address _asset = IStrategyInterface(_strategy).asset();
         return assetToStrategy[_asset] == _strategy;
     }
 
-
-    function setStrategyByAsset(address _asset, address _strategy) external onlyManagement {
+    function setStrategyByAsset(
+        address _asset,
+        address _strategy
+    ) external onlyManagement {
         assetToStrategy[_asset] = _strategy;
     }
 

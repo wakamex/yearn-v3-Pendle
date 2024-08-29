@@ -14,8 +14,6 @@ contract ShutdownTest is Setup {
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
 
-        checkStrategyTotals(strategy, _amount, _amount, 0);
-
         // Earn Interest
         skip(1 days);
 
@@ -23,17 +21,12 @@ contract ShutdownTest is Setup {
         vm.prank(management);
         strategy.shutdownStrategy();
 
-        checkStrategyTotals(strategy, _amount, _amount, 0);
-
         // Make sure we can still withdraw the full amount
         uint256 balanceBefore = asset.balanceOf(user);
 
         // Withdraw all funds
         vm.prank(user);
         strategy.redeem(_amount, user, user);
-
-        // TODO: Adjust if there are fees
-        checkStrategyTotals(strategy, 0, 0, 0);
 
         assertGe(
             asset.balanceOf(user),

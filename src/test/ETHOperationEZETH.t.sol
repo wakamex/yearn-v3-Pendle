@@ -13,51 +13,27 @@ contract ETHOperationEZETHTest is OperationTest {
         //super.setUp();
         uint256 mainnetFork = vm.createFork("mainnet");
         vm.selectFork(mainnetFork);
+        oracle = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
+        asset = ERC20(0xbf5495Efe5DB9ce00f80364C8B423567e58d2110); //ezETH
+        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-eETH-27JUN24 /SY-weETH Market --> asset
+        market = ERC20(0xD8F12bCDE578c653014F27379a6114F67F0e445f); //PT-ezETH-26 Dec 2024
 
-        //asset from https://docs.pendle.finance/Developers/Deployments/: Markets --> PT-ezETH-25APR24 /SY-ezETH Market --> asset
-        asset = ERC20(0xDe715330043799D7a80249660d1e6b61eB3713B3); //PT-ezETH-25APR24 /SY-ezETH Market
-        //targetToken from asset --> readTokens --> SY --> getTokensIn --> targetToken
-        targetToken = 0xbf5495Efe5DB9ce00f80364C8B423567e58d2110; //rswETH
-        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feeBaseToTargetToken = 100;
+        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
 
-        //ARB rewards:
-        //additionalReward1 = 0x912CE59144191C1204E64559FE8253a0e49E6548;
-        //feeAdditionalReward1toBase = 500;
-
-        //PNP rewards:
-        //additionalReward2 = 0x2Ac2B254Bc18cD4999f64773a966E4f4869c34Ee;
-        //feeAdditionalReward2toBase = 10000;
-        
-        //chain specific:
-        base = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; //WETH
-        PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
-        //(0.01% = 100, 0.05% = 500, 0.3% = 3000, 1% = 10000)
-        feePENDLEtoBase = 3000;
-
-        pendleStaking = 0x6E799758CEE75DAe3d84e09D40dc416eCf713652; //https://docs.penpiexyz.io/smart-contracts --> Arbitrum --> PendleStaking
-        GOV = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;  
-        
         // Set decimals
         decimals = asset.decimals();
         strategyFactory = setUpStrategyFactory();
         // Deploy strategy and set variables
         vm.prank(management);
-        strategy = IStrategyInterface(strategyFactory.newPendleLPCompounder(address(asset), feePENDLEtoBase, base, feeBaseToTargetToken, targetToken, "Strategy"));
+        strategy = IStrategyInterface(
+            strategyFactory.newSingleSidedPTcore(
+                address(asset),
+                address(market),
+                "Strategy"
+            )
+        );
         setUpStrategy();
         factory = strategy.FACTORY();
-        
-        // reward:
-        if (additionalReward1 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward1, feeAdditionalReward1toBase);
-        }
-
-        // reward:
-        if (additionalReward2 != address(0)) {
-            vm.prank(management);
-            strategy.addReward(additionalReward2, feeAdditionalReward2toBase);
-        }
 
         // label all the used addresses for traces
         vm.label(keeper, "keeper");

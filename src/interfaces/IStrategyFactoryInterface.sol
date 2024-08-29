@@ -2,12 +2,9 @@
 pragma solidity 0.8.18;
 
 interface IStrategyFactoryInterface {
-    function newPendleLPCompounder(
+    function newSingleSidedPTcore(
         address _asset,
-        uint24 _feePENDLEtoBase, 
-        address _base, 
-        uint24 _feeBaseToTargetToken, 
-        address _targetToken, 
+        address _market,
         string memory _name
     ) external returns (address);
 
